@@ -28,6 +28,10 @@ import {
   Target,
   Percent,
   BadgeCheck,
+  Copy,
+  Mail,
+  HelpCircle,
+  Users,
 } from "lucide-react";
 
 const frequencies = {
@@ -317,6 +321,7 @@ export default function App() {
   const [aggressiveExtraPayment, setAggressiveExtraPayment] = useState(300);
   const [lumpSum, setLumpSum] = useState(0);
   const [firstHomeBuyer, setFirstHomeBuyer] = useState(true);
+  const [copiedSummary, setCopiedSummary] = useState(false);
 
   const [splits, setSplits] = useState([
     { id: 1, percentage: 50, rate: 5.99 },
@@ -832,6 +837,49 @@ export default function App() {
     window.print();
   };
 
+  const shareSummary = useMemo(() => {
+    return `LoanWise NZ estimate
+Property price: ${money(Number(propertyPrice || 0))}
+Deposit: ${money(Number(depositAmount || 0))} (${depositPercent.toFixed(1)}%)
+Loan required: ${money(loanAmount)}
+Estimated ${frequencies[frequency].label.toLowerCase()} repayment: ${money(totalSplitRepayment)}
+Weighted interest rate: ${weightedRate.toFixed(2)}%
+LoanWise Score: ${loanWiseScore}/100 (${scoreLabel})
+Estimated interest saved with extra repayments: ${money(results.interestSaved)}
+
+Try LoanWise NZ:
+https://loanfreedomcalculator.github.io/loan-freedom-calculator/`;
+  }, [
+    propertyPrice,
+    depositAmount,
+    depositPercent,
+    loanAmount,
+    frequency,
+    totalSplitRepayment,
+    weightedRate,
+    loanWiseScore,
+    scoreLabel,
+    results.interestSaved,
+    money,
+  ]);
+
+  const copyShareSummary = async () => {
+    try {
+      await navigator.clipboard.writeText(shareSummary);
+      setCopiedSummary(true);
+      setTimeout(() => setCopiedSummary(false), 2200);
+    } catch (error) {
+      const textArea = document.createElement("textarea");
+      textArea.value = shareSummary;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      setCopiedSummary(true);
+      setTimeout(() => setCopiedSummary(false), 2200);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
       <style>{`
@@ -867,6 +915,12 @@ export default function App() {
             </a>
             <a href="#recommendations" className="hover:text-emerald-600">
               Tips
+            </a>
+            <a href="#about" className="hover:text-emerald-600">
+              About
+            </a>
+            <a href="#faq" className="hover:text-emerald-600">
+              FAQ
             </a>
           </nav>
 
@@ -915,6 +969,14 @@ export default function App() {
                   className="no-print inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-7 py-4 text-base font-black text-slate-800 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700"
                 >
                   <FileText size={18} /> Download PDF report
+                </button>
+
+                <button
+                  type="button"
+                  onClick={copyShareSummary}
+                  className="no-print inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-7 py-4 text-base font-black text-slate-800 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700"
+                >
+                  <Copy size={18} /> {copiedSummary ? "Copied!" : "Copy summary"}
                 </button>
               </div>
 
@@ -1816,6 +1878,13 @@ export default function App() {
 
                 <div className="no-print flex flex-col gap-3 sm:flex-row">
                   <button
+                    onClick={copyShareSummary}
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-800 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700"
+                  >
+                    <Copy size={16} /> {copiedSummary ? "Copied!" : "Copy Summary"}
+                  </button>
+
+                  <button
                     onClick={printPdfReport}
                     className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
                   >
@@ -1864,6 +1933,143 @@ export default function App() {
               </p>
             </div>
           </section>
+        </section>
+
+
+        <section id="about" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+          <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
+              <SectionTitle
+                eyebrow="About LoanWise NZ"
+                title="Built to help borrowers understand their numbers."
+                note="LoanWise NZ is designed for people who want a quick, practical view before talking to a lender, adviser, partner, or family member."
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  "First-home buyers checking deposit and repayments",
+                  "Existing borrowers testing extra payments",
+                  "People comparing split mortgage rate options",
+                  "Anyone wanting a PDF-ready loan summary",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="flex gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <CheckCircle2 className="mt-1 shrink-0 text-emerald-500" size={18} />
+                    <p className="text-sm font-semibold leading-6 text-slate-700">{item}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-emerald-100 bg-emerald-50/70 p-6 shadow-xl shadow-emerald-100/50">
+              <SectionTitle
+                eyebrow="Shareable result"
+                title="Copy a clean summary for your adviser or family."
+                note="Use this after entering your numbers. It gives a simple snapshot of the estimate."
+              />
+              <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-3xl bg-white p-5 text-sm font-semibold leading-6 text-slate-700 shadow-sm">
+                {shareSummary}
+              </pre>
+              <div className="no-print mt-4 flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={copyShareSummary}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
+                >
+                  <Copy size={16} /> {copiedSummary ? "Copied!" : "Copy share summary"}
+                </button>
+                <a
+                  href="mailto:?subject=My LoanWise NZ estimate&body=I created this loan estimate using LoanWise NZ. Please review the summary I copied from the calculator."
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-800 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700"
+                >
+                  <Mail size={16} /> Email reminder
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="faq" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
+            <SectionTitle
+              eyebrow="Frequently asked questions"
+              title="Common questions before using the calculator"
+              note="These answers help users understand the tool and build trust before relying on the estimate."
+            />
+            <div className="grid gap-4 md:grid-cols-2">
+              {[
+                {
+                  q: "Is LoanWise NZ financial advice?",
+                  a: "No. It is an estimate and planning tool only. Users should speak with a qualified mortgage adviser or lender before making financial decisions.",
+                },
+                {
+                  q: "Does the calculator include bank fees and low-equity margins?",
+                  a: "No. It does not include all lender fees, low-equity conditions, insurance, cashback terms, or break fees.",
+                },
+                {
+                  q: "What is a split mortgage?",
+                  a: "A split mortgage divides one loan into multiple portions, often with different interest rates or fixed terms.",
+                },
+                {
+                  q: "Can first-home buyers use it?",
+                  a: "Yes. First-home buyer mode highlights deposit position and basic planning tips for people preparing for a first home loan.",
+                },
+                {
+                  q: "Can I compare interest rates?",
+                  a: "Yes. The rate comparison section lets users test different bank or rate options and see estimated repayment differences.",
+                },
+                {
+                  q: "Can I download my result?",
+                  a: "Yes. Users can copy a share summary, download CSV repayment schedule, or use the PDF report button to save a printable report.",
+                },
+              ].map((item) => (
+                <div key={item.q} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="flex gap-3">
+                    <HelpCircle className="mt-1 shrink-0 text-emerald-600" size={20} />
+                    <div>
+                      <h3 className="font-black text-slate-950">{item.q}</h3>
+                      <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{item.a}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="contact" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+          <div className="rounded-[2rem] border border-slate-200 bg-slate-950 p-6 text-white shadow-xl">
+            <div className="grid gap-6 md:grid-cols-[1fr_1.1fr] md:items-center">
+              <div>
+                <p className="text-sm font-black uppercase tracking-wide text-emerald-300">
+                  Feedback welcome
+                </p>
+                <h2 className="mt-2 text-3xl font-black tracking-tight">
+                  Help make LoanWise NZ more useful.
+                </h2>
+                <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
+                  Share feedback from first-home buyers, borrowers, mortgage advisers, or anyone comparing loan options.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-3xl bg-white/10 p-5">
+                  <Users className="text-emerald-300" size={24} />
+                  <p className="mt-3 text-lg font-black">For borrowers</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-300">
+                    Use it to prepare questions before a bank or adviser meeting.
+                  </p>
+                </div>
+                <div className="rounded-3xl bg-white/10 p-5">
+                  <ShieldCheck className="text-emerald-300" size={24} />
+                  <p className="mt-3 text-lg font-black">For advisers</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-300">
+                    Share it as a simple pre-consultation planning tool.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <footer className="mt-12 border-t border-slate-200 bg-white">
