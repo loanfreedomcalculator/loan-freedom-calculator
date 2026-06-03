@@ -322,6 +322,14 @@ export default function App() {
   const [lumpSum, setLumpSum] = useState(0);
   const [firstHomeBuyer, setFirstHomeBuyer] = useState(true);
   const [copiedSummary, setCopiedSummary] = useState(false);
+  const [savedEstimate, setSavedEstimate] = useState(false);
+  const [annualIncome, setAnnualIncome] = useState(120000);
+  const [monthlyExpenses, setMonthlyExpenses] = useState(3500);
+  const [selectedAdviser, setSelectedAdviser] = useState("LoanWise NZ Review Team");
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerMessage, setCustomerMessage] = useState("");
 
   const [splits, setSplits] = useState([
     { id: 1, percentage: 50, rate: 5.99 },
@@ -545,6 +553,59 @@ export default function App() {
     if (loanWiseScore >= 50) return "Needs review";
     return "Higher risk estimate";
   }, [loanWiseScore]);
+
+
+  const affordability = useMemo(() => {
+    const income = Number(annualIncome || 0);
+    const expenses = Number(monthlyExpenses || 0);
+    const annualRepayment = totalSplitRepayment * periodsPerYear;
+    const repaymentToIncome = income > 0 ? (annualRepayment / income) * 100 : 0;
+    const monthlyRepayment =
+      frequency === "monthly"
+        ? totalSplitRepayment
+        : (totalSplitRepayment * periodsPerYear) / 12;
+    const monthlyIncome = income / 12;
+    const monthlySurplus = monthlyIncome - expenses - monthlyRepayment;
+
+    let label = "Add income to calculate";
+    let tone = "text-slate-600";
+    if (income > 0 && repaymentToIncome <= 30) {
+      label = "Comfortable estimate";
+      tone = "text-emerald-600";
+    } else if (income > 0 && repaymentToIncome <= 40) {
+      label = "Watch closely";
+      tone = "text-amber-600";
+    } else if (income > 0) {
+      label = "High pressure estimate";
+      tone = "text-red-600";
+    }
+
+    return {
+      repaymentToIncome,
+      monthlySurplus,
+      monthlyRepayment,
+      label,
+      tone,
+    };
+  }, [annualIncome, monthlyExpenses, totalSplitRepayment, periodsPerYear, frequency]);
+
+  const stressTests = useMemo(() => {
+    return [1, 2, 3].map((increase) => {
+      const stressedRate = weightedRate + increase;
+      const repayment = calculatePayment(
+        loanAmount,
+        stressedRate,
+        Number(loanTerm),
+        periodsPerYear
+      );
+      return {
+        increase,
+        stressedRate,
+        repayment,
+        difference: repayment - results.normal.standardPayment,
+      };
+    });
+  }, [weightedRate, loanAmount, loanTerm, periodsPerYear, results.normal.standardPayment]);
 
   const recommendations = useMemo(() => {
     const tips = [];
@@ -880,6 +941,64 @@ https://loanfreedomcalculator.github.io/loan-freedom-calculator/`;
     }
   };
 
+
+  const saveEstimate = () => {
+    const estimate = {
+      createdAt: new Date().toISOString(),
+      currencyCode,
+      propertyPrice,
+      depositAmount,
+      depositPercent,
+      loanAmount,
+      weightedRate,
+      totalSplitRepayment,
+      loanWiseScore,
+      scoreLabel,
+      recommendations,
+    };
+
+    localStorage.setItem("loanwise-nz-last-estimate", JSON.stringify(estimate));
+    setSavedEstimate(true);
+    setTimeout(() => setSavedEstimate(false), 2200);
+
+    if (window.gtag) {
+      window.gtag("event", "save_estimate", {
+        event_category: "engagement",
+        event_label: "LoanWise NZ estimate saved",
+      });
+    }
+  };
+
+  const enquiryMailto = useMemo(() => {
+    const subject = encodeURIComponent(`LoanWise NZ enquiry - ${selectedAdviser}`);
+    const body = encodeURIComponent(
+      `Hello LoanWise NZ,
+
+I would like someone to review this estimate or contact me.
+
+Name: ${customerName || "[add name]"}
+Email: ${customerEmail || "[add email]"}
+Phone: ${customerPhone || "[optional]"}
+Preferred adviser/team: ${selectedAdviser}
+
+Message:
+${customerMessage || "[add message]"}
+
+${shareSummary}
+
+Important: I understand this calculator is an estimate only and not financial advice.`
+    );
+
+    return `mailto:loanfreedomcalculator@gmail.com?subject=${subject}&body=${body}`;
+  }, [
+    selectedAdviser,
+    customerName,
+    customerEmail,
+    customerPhone,
+    customerMessage,
+    shareSummary,
+  ]);
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
       <style>{`
@@ -915,6 +1034,12 @@ https://loanfreedomcalculator.github.io/loan-freedom-calculator/`;
             </a>
             <a href="#recommendations" className="hover:text-emerald-600">
               Tips
+            </a>
+            <a href="#affordability" className="hover:text-emerald-600">
+              Affordability
+            </a>
+            <a href="#adviser" className="hover:text-emerald-600">
+              Adviser
             </a>
             <a href="#about" className="hover:text-emerald-600">
               About
@@ -1865,6 +1990,251 @@ https://loanfreedomcalculator.github.io/loan-freedom-calculator/`;
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+
+            <div
+              id="affordability"
+              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60"
+            >
+              <SectionTitle
+                eyebrow="Affordability check"
+                title="Check repayment pressure"
+                note="This quick estimate compares your repayment against income and monthly expenses."
+              />
+
+              <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+                <div className="grid gap-4">
+                  <Field label="Annual household income">
+                    <Input
+                      type="number"
+                      value={annualIncome}
+                      onChange={(e) => setAnnualIncome(e.target.value)}
+                    />
+                  </Field>
+
+                  <Field label="Estimated monthly expenses">
+                    <Input
+                      type="number"
+                      value={monthlyExpenses}
+                      onChange={(e) => setMonthlyExpenses(e.target.value)}
+                    />
+                  </Field>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                      Repayment to income
+                    </p>
+                    <p className={`mt-2 text-3xl font-black ${affordability.tone}`}>
+                      {affordability.repaymentToIncome.toFixed(1)}%
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-slate-500">
+                      {affordability.label}
+                    </p>
+                  </div>
+
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                      Monthly repayment
+                    </p>
+                    <p className="mt-2 text-2xl font-black text-slate-950">
+                      {money(affordability.monthlyRepayment)}
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-slate-500">
+                      converted from selected frequency
+                    </p>
+                  </div>
+
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                      Monthly surplus
+                    </p>
+                    <p
+                      className={`mt-2 text-2xl font-black ${
+                        affordability.monthlySurplus >= 0
+                          ? "text-emerald-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {money(affordability.monthlySurplus)}
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-slate-500">
+                      after expenses and repayment
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
+              <SectionTitle
+                eyebrow="Rate stress test"
+                title="What if interest rates rise?"
+                note="This helps customers check whether a higher interest rate would still be manageable."
+              />
+
+              <div className="grid gap-4 md:grid-cols-3">
+                {stressTests.map((item) => (
+                  <div
+                    key={item.increase}
+                    className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
+                  >
+                    <p className="text-sm font-black text-slate-500">
+                      +{item.increase}% rate scenario
+                    </p>
+                    <p className="mt-2 text-3xl font-black text-slate-950">
+                      {item.stressedRate.toFixed(2)}%
+                    </p>
+                    <p className="mt-3 text-sm font-bold text-slate-500">
+                      Estimated repayment
+                    </p>
+                    <p className="text-xl font-black text-slate-950">
+                      {money(item.repayment)}
+                    </p>
+                    <p className="mt-2 text-sm font-bold text-red-600">
+                      {money(item.difference)} more per{" "}
+                      {frequencies[frequency].label.toLowerCase()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div id="adviser" className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
+              <SectionTitle
+                eyebrow="Mortgage adviser enquiry"
+                title="Request a review or callback"
+                note="This sends a pre-filled email to LoanWise NZ with the customer’s calculator summary. Add real adviser names only after they agree to be listed."
+              />
+
+              <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+                <div className="grid gap-4">
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    {[
+                      {
+                        name: "LoanWise NZ Review Team",
+                        region: "General enquiry",
+                        focus: "Calculator feedback and estimate review",
+                      },
+                      {
+                        name: "Auckland Partner Adviser",
+                        region: "Auckland",
+                        focus: "First-home buyer enquiries",
+                      },
+                      {
+                        name: "NZ Refix Partner Adviser",
+                        region: "Nationwide",
+                        focus: "Refix and split-mortgage planning",
+                      },
+                    ].map((adviser) => (
+                      <button
+                        type="button"
+                        key={adviser.name}
+                        onClick={() => setSelectedAdviser(adviser.name)}
+                        className={`rounded-3xl border p-4 text-left transition ${
+                          selectedAdviser === adviser.name
+                            ? "border-emerald-300 bg-emerald-50"
+                            : "border-slate-200 bg-slate-50 hover:border-emerald-200"
+                        }`}
+                      >
+                        <p className="font-black text-slate-950">{adviser.name}</p>
+                        <p className="mt-1 text-sm font-bold text-emerald-700">
+                          {adviser.region}
+                        </p>
+                        <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
+                          {adviser.focus}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="rounded-3xl bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-800">
+                    Adviser cards are placeholders. Replace them with real adviser names,
+                    licence/FAP details, and emails only after permission.
+                  </p>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Name">
+                      <Input
+                        type="text"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder="Customer name"
+                      />
+                    </Field>
+
+                    <Field label="Email">
+                      <Input
+                        type="email"
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        placeholder="customer@email.com"
+                      />
+                    </Field>
+
+                    <Field label="Phone optional">
+                      <Input
+                        type="tel"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        placeholder="Phone number"
+                      />
+                    </Field>
+
+                    <Field label="Selected adviser/team">
+                      <Select
+                        value={selectedAdviser}
+                        onChange={(e) => setSelectedAdviser(e.target.value)}
+                      >
+                        <option>LoanWise NZ Review Team</option>
+                        <option>Auckland Partner Adviser</option>
+                        <option>NZ Refix Partner Adviser</option>
+                      </Select>
+                    </Field>
+                  </div>
+
+                  <label className="mt-4 block">
+                    <span className="mb-2 block text-sm font-bold text-slate-700">
+                      Message
+                    </span>
+                    <textarea
+                      value={customerMessage}
+                      onChange={(e) => setCustomerMessage(e.target.value)}
+                      placeholder="Tell us what you would like reviewed."
+                      className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                    />
+                  </label>
+
+                  <div className="no-print mt-4 flex flex-col gap-3 sm:flex-row">
+                    <a
+                      href={enquiryMailto}
+                      onClick={() => {
+                        if (window.gtag) {
+                          window.gtag("event", "adviser_enquiry_click", {
+                            event_category: "lead",
+                            event_label: selectedAdviser,
+                          });
+                        }
+                      }}
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
+                    >
+                      <Mail size={16} /> Send enquiry
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={saveEstimate}
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-800 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700"
+                    >
+                      <CheckCircle2 size={16} /> {savedEstimate ? "Saved!" : "Save estimate"}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
