@@ -32,6 +32,8 @@ import {
   Mail,
   HelpCircle,
   Users,
+  WalletCards,
+  Gauge,
 } from "lucide-react";
 
 const frequencies = {
@@ -41,22 +43,21 @@ const frequencies = {
 };
 
 const currencyOptions = {
-  NZD: { label: "New Zealand Dollar", locale: "en-NZ", symbol: "$" },
-  AUD: { label: "Australian Dollar", locale: "en-AU", symbol: "$" },
-  USD: { label: "US Dollar", locale: "en-US", symbol: "$" },
-  GBP: { label: "British Pound", locale: "en-GB", symbol: "£" },
-  EUR: { label: "Euro", locale: "de-DE", symbol: "€" },
-  INR: { label: "Indian Rupee", locale: "en-IN", symbol: "₹" },
+  NZD: { label: "New Zealand Dollar", locale: "en-NZ" },
+  AUD: { label: "Australian Dollar", locale: "en-AU" },
+  USD: { label: "US Dollar", locale: "en-US" },
+  GBP: { label: "British Pound", locale: "en-GB" },
+  EUR: { label: "Euro", locale: "de-DE" },
+  INR: { label: "Indian Rupee", locale: "en-IN" },
 };
 
-function currency(value, currencyCode = "NZD") {
-  const selected = currencyOptions[currencyCode] || currencyOptions.NZD;
-
-  return new Intl.NumberFormat(selected.locale, {
+function formatMoney(value, currencyCode = "NZD") {
+  const option = currencyOptions[currencyCode] || currencyOptions.NZD;
+  return new Intl.NumberFormat(option.locale, {
     style: "currency",
     currency: currencyCode,
     maximumFractionDigits: 0,
-  }).format(Number.isFinite(value) ? value : 0);
+  }).format(Number.isFinite(Number(value)) ? Number(value) : 0);
 }
 
 function formatYearsMonths(periods, periodsPerYear) {
@@ -66,7 +67,6 @@ function formatYearsMonths(periods, periodsPerYear) {
 
   if (years === 0) return `${months} month${months === 1 ? "" : "s"}`;
   if (months === 0) return `${years} year${years === 1 ? "" : "s"}`;
-
   return `${years} year${years === 1 ? "" : "s"} ${months} month${
     months === 1 ? "" : "s"
   }`;
@@ -76,7 +76,7 @@ function calculatePayment(principal, annualRate, years, periodsPerYear) {
   const n = Number(years) * Number(periodsPerYear);
   const r = Number(annualRate) / 100 / Number(periodsPerYear);
 
-  if (Number(principal) <= 0 || Number(years) <= 0) return 0;
+  if (Number(principal) <= 0 || Number(years) <= 0 || Number(periodsPerYear) <= 0) return 0;
   if (r === 0) return Number(principal) / n;
 
   return (Number(principal) * r) / (1 - Math.pow(1 + r, -n));
@@ -141,18 +141,14 @@ function yearlyChartData(normalRows, extraRows, periodsPerYear, principal) {
   const maxYears = Math.ceil(
     Math.max(normalRows.length, extraRows.length) / periodsPerYear
   );
-
   const data = [];
 
   for (let year = 0; year <= maxYears; year++) {
     const index = Math.max(0, year * periodsPerYear - 1);
-    const normal = year === 0 ? principal : normalRows[index]?.balance ?? 0;
-    const extra = year === 0 ? principal : extraRows[index]?.balance ?? 0;
-
     data.push({
       year,
-      normal: Math.round(normal),
-      extra: Math.round(extra),
+      normal: Math.round(year === 0 ? principal : normalRows[index]?.balance ?? 0),
+      extra: Math.round(year === 0 ? principal : extraRows[index]?.balance ?? 0),
     });
   }
 
@@ -188,17 +184,17 @@ function downloadCsv(rows) {
 function Logo() {
   return (
     <div className="flex items-center gap-3">
-      <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25">
-        <Home size={23} strokeWidth={2.8} />
+      <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25">
+        <Home size={22} strokeWidth={2.8} />
         <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-950">
           <TrendingUp size={12} className="text-emerald-300" />
         </div>
       </div>
       <div>
-        <p className="text-xl font-black tracking-tight text-slate-950">
+        <p className="text-lg font-black tracking-tight text-slate-950">
           LoanWise NZ
         </p>
-        <p className="text-xs font-bold uppercase tracking-[0.24em] text-emerald-600">
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-600">
           Smarter loan planning
         </p>
       </div>
@@ -267,29 +263,29 @@ function Toggle({ checked, onChange, label, description }) {
   );
 }
 
-function MetricCard({ icon, label, value, note, accent = "emerald" }) {
-  const styles = {
-    emerald: "bg-emerald-50 text-emerald-700",
-    teal: "bg-teal-50 text-teal-700",
-    amber: "bg-amber-50 text-amber-700",
-    navy: "bg-slate-100 text-slate-800",
-    blue: "bg-sky-50 text-sky-700",
+function ResultTile({ icon, label, value, note, tone = "emerald" }) {
+  const colors = {
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    teal: "bg-teal-50 text-teal-700 border-teal-100",
+    amber: "bg-amber-50 text-amber-700 border-amber-100",
+    slate: "bg-slate-50 text-slate-700 border-slate-200",
+    sky: "bg-sky-50 text-sky-700 border-sky-100",
   };
 
   return (
-    <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl">
-      <div
-        className={`mb-4 inline-flex rounded-2xl p-3 ${
-          styles[accent] || styles.emerald
-        }`}
-      >
-        {icon}
+    <div className={`rounded-3xl border p-4 ${colors[tone] || colors.emerald}`}>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+          {label}
+        </p>
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-slate-900 shadow-sm">
+          {icon}
+        </div>
       </div>
-      <p className="text-sm font-bold text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+      <p className="break-words text-2xl font-black leading-tight text-slate-950">
         {value}
       </p>
-      <p className="mt-1 text-sm text-slate-500">{note}</p>
+      <p className="mt-2 text-sm font-black">{note}</p>
     </div>
   );
 }
@@ -300,7 +296,7 @@ function SectionTitle({ eyebrow, title, note }) {
       <p className="text-sm font-black uppercase tracking-wide text-emerald-600">
         {eyebrow}
       </p>
-      <h2 className="mt-1 text-3xl font-black tracking-tight text-slate-950">
+      <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
         {title}
       </h2>
       {note && <p className="mt-2 text-sm leading-6 text-slate-500">{note}</p>}
@@ -343,7 +339,7 @@ export default function App() {
     { id: 3, label: "Bank option C", rate: 6.99 },
   ]);
 
-  const money = (value) => currency(value, currencyCode);
+  const money = (value) => formatMoney(value, currencyCode);
 
   const loanAmount = useMemo(() => {
     if (!usePropertyMode) return Number(manualLoanAmount || 0);
@@ -364,7 +360,6 @@ export default function App() {
 
   const weightedRate = useMemo(() => {
     if (splitTotalPercentage <= 0) return 0;
-
     return splits.reduce((sum, item) => {
       return (
         sum +
@@ -453,7 +448,7 @@ export default function App() {
 
   const frequencyComparison = useMemo(() => {
     return Object.entries(frequencies).map(([key, item]) => {
-      const splitRepayment = splits.reduce((sum, split) => {
+      const repayment = splits.reduce((sum, split) => {
         const amount = (loanAmount * Number(split.percentage || 0)) / 100;
         return (
           sum +
@@ -469,25 +464,21 @@ export default function App() {
       return {
         key,
         label: item.label,
-        repayment: splitRepayment,
-        withExtra:
-          splitRepayment +
-          (key === frequency ? Number(extraPayment || 0) : 0),
+        repayment,
       };
     });
-  }, [splits, loanAmount, loanTerm, frequency, extraPayment]);
+  }, [splits, loanAmount, loanTerm]);
 
   const rateComparisonResults = useMemo(() => {
-    const lowestPayment = Math.min(
-      ...rateComparisons.map((item) =>
-        calculatePayment(
-          loanAmount,
-          Number(item.rate || 0),
-          Number(loanTerm),
-          periodsPerYear
-        )
+    const payments = rateComparisons.map((item) =>
+      calculatePayment(
+        loanAmount,
+        Number(item.rate || 0),
+        Number(loanTerm),
+        periodsPerYear
       )
     );
+    const lowestPayment = Math.min(...payments);
 
     return rateComparisons.map((item) => {
       const repayment = calculatePayment(
@@ -553,7 +544,6 @@ export default function App() {
     if (loanWiseScore >= 50) return "Needs review";
     return "Higher risk estimate";
   }, [loanWiseScore]);
-
 
   const affordability = useMemo(() => {
     const income = Number(annualIncome || 0);
@@ -675,8 +665,8 @@ export default function App() {
     frequency,
     results.interestSaved,
     loanTerm,
+    money,
   ]);
-
 
   const aiCoach = useMemo(() => {
     const actions = [];
@@ -687,15 +677,15 @@ export default function App() {
     if (loanWiseScore >= 85) {
       riskLevel = "Strong";
       headline = "You have a strong estimated loan position.";
-      insight = "Your deposit, repayment strategy, and split-rate setup look healthy. You can use scenario comparison to test whether a shorter loan term creates worthwhile savings.";
+      insight = "Your deposit, repayment strategy, and split-rate setup look healthy. Use scenario comparison to test whether a shorter loan term creates worthwhile savings.";
     } else if (loanWiseScore >= 70) {
       riskLevel = "Healthy";
       headline = "Your plan looks healthy, with room to optimise.";
-      insight = "Your numbers are generally balanced. The best next step is to compare a slightly higher extra repayment or a shorter term against your current comfort level.";
+      insight = "Your numbers are generally balanced. The best next step is to compare a slightly higher extra repayment or a shorter term against your comfort level.";
     } else if (loanWiseScore >= 50) {
       riskLevel = "Review";
       headline = "Your plan may benefit from a few adjustments.";
-      insight = "Your estimate suggests there may be opportunities to improve deposit strength, reduce interest exposure, or increase extra repayments gradually.";
+      insight = "Your estimate suggests opportunities to improve deposit strength, reduce interest exposure, or increase extra repayments gradually.";
     } else {
       riskLevel = "Caution";
       headline = "Your plan needs careful review before relying on it.";
@@ -713,15 +703,11 @@ export default function App() {
     if (Number(extraPayment || 0) <= 0) {
       actions.push("Test a small extra repayment to unlock time and interest savings.");
     } else {
-      actions.push(`Compare your current extra repayment against the aggressive plan to see if the extra ${money(Number(aggressiveExtraPayment || 0))} option is comfortable.`);
+      actions.push(`Compare your current extra repayment against the aggressive ${money(Number(aggressiveExtraPayment || 0))} option.`);
     }
 
     if (Number(loanTerm) >= 30) {
       actions.push("Try a 25-year term scenario to compare interest saved against higher repayments.");
-    }
-
-    if (weightedRate >= 7) {
-      actions.push("Use the interest rate comparison table to test lower-rate options and see the repayment difference.");
     }
 
     return {
@@ -738,63 +724,8 @@ export default function App() {
     extraPayment,
     aggressiveExtraPayment,
     loanTerm,
-    weightedRate,
     money,
   ]);
-
-  const applyAiPreset = (preset) => {
-    if (preset === "conservative") {
-      setLoanTerm(30);
-      setExtraPayment(50);
-      setAggressiveExtraPayment(150);
-      setSplits([
-        { id: 1, percentage: 70, rate: 5.99 },
-        { id: 2, percentage: 20, rate: 6.49 },
-        { id: 3, percentage: 10, rate: 6.99 },
-      ]);
-    }
-
-    if (preset === "balanced") {
-      setLoanTerm(25);
-      setExtraPayment(150);
-      setAggressiveExtraPayment(350);
-      setSplits([
-        { id: 1, percentage: 50, rate: 5.99 },
-        { id: 2, percentage: 30, rate: 6.49 },
-        { id: 3, percentage: 20, rate: 7.1 },
-      ]);
-    }
-
-    if (preset === "aggressive") {
-      setLoanTerm(20);
-      setExtraPayment(300);
-      setAggressiveExtraPayment(600);
-      setSplits([
-        { id: 1, percentage: 40, rate: 5.99 },
-        { id: 2, percentage: 35, rate: 6.29 },
-        { id: 3, percentage: 25, rate: 6.79 },
-      ]);
-    }
-
-    if (preset === "improve") {
-      if (usePropertyMode && depositPercent < 20) {
-        setDepositAmount(Math.round(Number(propertyPrice || 0) * 0.2));
-      }
-      if (splitTotalPercentage !== 100) {
-        setSplits([
-          { id: 1, percentage: 50, rate: 5.99 },
-          { id: 2, percentage: 30, rate: 6.49 },
-          { id: 3, percentage: 20, rate: 7.1 },
-        ]);
-      }
-      if (Number(extraPayment || 0) <= 0) {
-        setExtraPayment(100);
-      }
-      if (Number(loanTerm) > 25) {
-        setLoanTerm(25);
-      }
-    }
-  };
 
   const scenarioRows = [
     {
@@ -834,6 +765,8 @@ export default function App() {
     setAggressiveExtraPayment(300);
     setLumpSum(0);
     setFirstHomeBuyer(true);
+    setAnnualIncome(120000);
+    setMonthlyExpenses(3500);
     setSplits([
       { id: 1, percentage: 50, rate: 5.99 },
       { id: 2, percentage: 30, rate: 6.49 },
@@ -894,6 +827,67 @@ export default function App() {
     setRateComparisons(rateComparisons.filter((item) => item.id !== id));
   };
 
+  const applyAiPreset = (preset) => {
+    if (preset === "conservative") {
+      setLoanTerm(30);
+      setExtraPayment(50);
+      setAggressiveExtraPayment(150);
+      setSplits([
+        { id: 1, percentage: 70, rate: 5.99 },
+        { id: 2, percentage: 20, rate: 6.49 },
+        { id: 3, percentage: 10, rate: 6.99 },
+      ]);
+    }
+
+    if (preset === "balanced") {
+      setLoanTerm(25);
+      setExtraPayment(150);
+      setAggressiveExtraPayment(350);
+      setSplits([
+        { id: 1, percentage: 50, rate: 5.99 },
+        { id: 2, percentage: 30, rate: 6.49 },
+        { id: 3, percentage: 20, rate: 7.1 },
+      ]);
+    }
+
+    if (preset === "aggressive") {
+      setLoanTerm(20);
+      setExtraPayment(300);
+      setAggressiveExtraPayment(600);
+      setSplits([
+        { id: 1, percentage: 40, rate: 5.99 },
+        { id: 2, percentage: 35, rate: 6.29 },
+        { id: 3, percentage: 25, rate: 6.79 },
+      ]);
+    }
+
+    if (preset === "improve") {
+      if (usePropertyMode && depositPercent < 20) {
+        setDepositAmount(Math.round(Number(propertyPrice || 0) * 0.2));
+      }
+      if (splitTotalPercentage !== 100) {
+        setSplits([
+          { id: 1, percentage: 50, rate: 5.99 },
+          { id: 2, percentage: 30, rate: 6.49 },
+          { id: 3, percentage: 20, rate: 7.1 },
+        ]);
+      }
+      if (Number(extraPayment || 0) <= 0) {
+        setExtraPayment(100);
+      }
+      if (Number(loanTerm) > 25) {
+        setLoanTerm(25);
+      }
+    }
+
+    if (window.gtag) {
+      window.gtag("event", "ai_coach_preset", {
+        event_category: "engagement",
+        event_label: preset,
+      });
+    }
+  };
+
   const printPdfReport = () => {
     window.print();
   };
@@ -939,8 +933,14 @@ https://loanfreedomcalculator.github.io/loan-freedom-calculator/`;
       setCopiedSummary(true);
       setTimeout(() => setCopiedSummary(false), 2200);
     }
-  };
 
+    if (window.gtag) {
+      window.gtag("event", "copy_summary", {
+        event_category: "engagement",
+        event_label: "LoanWise NZ summary copied",
+      });
+    }
+  };
 
   const saveEstimate = () => {
     const estimate = {
@@ -1015,142 +1015,369 @@ Important: I understand this calculator is an estimate only and not financial ad
         }
       `}</style>
 
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/85 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Logo />
 
-          <nav className="hidden items-center gap-7 text-sm font-bold text-slate-600 md:flex">
-            <a href="#calculator" className="hover:text-emerald-600">
-              Calculator
-            </a>
-            <a href="#features" className="hover:text-emerald-600">
-              Features
-            </a>
-            <a href="#compare" className="hover:text-emerald-600">
-              Compare
-            </a>
-            <a href="#ai-coach" className="hover:text-emerald-600">
-              AI Coach
-            </a>
-            <a href="#recommendations" className="hover:text-emerald-600">
-              Tips
-            </a>
-            <a href="#affordability" className="hover:text-emerald-600">
-              Affordability
-            </a>
-            <a href="#adviser" className="hover:text-emerald-600">
-              Adviser
-            </a>
-            <a href="#about" className="hover:text-emerald-600">
-              About
-            </a>
-            <a href="#faq" className="hover:text-emerald-600">
-              FAQ
-            </a>
+          <nav className="hidden items-center gap-6 text-sm font-bold text-slate-600 lg:flex">
+            <a href="#calculator" className="hover:text-emerald-600">Calculator</a>
+            <a href="#ai-coach" className="hover:text-emerald-600">AI Coach</a>
+            <a href="#compare" className="hover:text-emerald-600">Compare</a>
+            <a href="#adviser" className="hover:text-emerald-600">Adviser</a>
+            <a href="#faq" className="hover:text-emerald-600">FAQ</a>
           </nav>
 
           <a
             href="#calculator"
-            className="hidden rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-lg shadow-slate-950/10 transition hover:bg-emerald-600 sm:inline-flex"
+            className="rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-lg shadow-slate-950/10 transition hover:bg-emerald-600"
           >
-            Start calculating
+            Start
           </a>
         </div>
       </header>
 
       <main>
-        <section className="relative overflow-hidden bg-gradient-to-b from-white via-emerald-50/40 to-slate-50">
-          <div className="absolute left-[-10rem] top-24 h-72 w-72 rounded-full bg-emerald-200/60 blur-3xl" />
-          <div className="absolute right-[-10rem] top-40 h-72 w-72 rounded-full bg-teal-200/50 blur-3xl" />
-
-          <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-20">
-            <div>
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-black text-emerald-700 shadow-sm">
-                <Sparkles size={16} />
-                NZ mortgage and loan planning tool
+        <section id="calculator" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mb-6 rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-white via-emerald-50/40 to-slate-50 p-6 shadow-sm">
+            <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
+              <div>
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-black text-emerald-700 shadow-sm">
+                  <Sparkles size={16} />
+                  NZ mortgage and loan planning tool
+                </div>
+                <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl">
+                  Calculate first. Decide smarter.
+                </h1>
+                <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
+                  Enter property, deposit, loan term, split interest rates, and extra repayments.
+                  Results stay visible while you calculate.
+                </p>
               </div>
 
-              <h1 className="max-w-4xl text-5xl font-black leading-[1.02] tracking-tight text-slate-950 sm:text-6xl lg:text-7xl">
-                Plan smarter before you borrow.
-              </h1>
-
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-                Calculate property price, deposit, split mortgage rates, extra
-                repayments, frequency comparisons, LoanWise Score, and a simple
-                PDF-ready report in one clean dashboard.
-              </p>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href="#calculator"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-7 py-4 text-base font-black text-white shadow-xl shadow-emerald-500/25 transition hover:bg-emerald-600"
-                >
-                  Use calculator <ArrowRight size={18} />
-                </a>
-
-                <button
-                  type="button"
-                  onClick={printPdfReport}
-                  className="no-print inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-7 py-4 text-base font-black text-slate-800 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700"
-                >
-                  <FileText size={18} /> Download PDF report
-                </button>
-
+              <div className="no-print flex flex-col gap-3 sm:flex-row">
                 <button
                   type="button"
                   onClick={copyShareSummary}
-                  className="no-print inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-7 py-4 text-base font-black text-slate-800 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-800 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700"
                 >
-                  <Copy size={18} /> {copiedSummary ? "Copied!" : "Copy summary"}
+                  <Copy size={16} /> {copiedSummary ? "Copied!" : "Copy summary"}
+                </button>
+                <button
+                  type="button"
+                  onClick={printPdfReport}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
+                >
+                  <FileText size={16} /> PDF report
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[470px_1fr] lg:items-start">
+            <aside className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/60 sm:p-6">
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-black uppercase tracking-wide text-emerald-600">
+                    Calculator inputs
+                  </p>
+                  <h2 className="mt-1 text-2xl font-black tracking-tight">
+                    Loan details
+                  </h2>
+                </div>
+
+                <button
+                  onClick={resetExample}
+                  className="no-print inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-200"
+                >
+                  <RefreshCcw size={16} /> Reset
                 </button>
               </div>
 
-              <div className="mt-10 grid max-w-3xl gap-3 sm:grid-cols-3">
-                {[
-                  "Property + deposit calculator",
-                  "Split mortgage calculator",
-                  "LoanWise AI Coach",
-                ].map((item) => (
-                  <div
-                    key={item}
-                    className="flex items-center gap-2 rounded-2xl bg-white p-4 text-sm font-bold text-slate-700 shadow-sm"
-                  >
-                    <CheckCircle2 size={18} className="text-emerald-500" />
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
+              <div className="space-y-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Toggle
+                    checked={usePropertyMode}
+                    onChange={setUsePropertyMode}
+                    label="Property + deposit"
+                    description="Calculate loan from purchase price."
+                  />
 
-            <div className="relative">
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-200/80">
-                <div className="mb-5 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-black uppercase tracking-wide text-emerald-600">
-                      Live summary
-                    </p>
-                    <h2 className="text-2xl font-black text-slate-950">
-                      LoanWise preview
-                    </h2>
+                  <Toggle
+                    checked={firstHomeBuyer}
+                    onChange={setFirstHomeBuyer}
+                    label="First-home buyer"
+                    description="Show extra buyer guidance."
+                  />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Loan type">
+                    <Select
+                      value={loanType}
+                      onChange={(e) => setLoanType(e.target.value)}
+                    >
+                      <option>Mortgage</option>
+                      <option>Car loan</option>
+                      <option>Personal loan</option>
+                    </Select>
+                  </Field>
+
+                  <Field label="Currency">
+                    <Select
+                      value={currencyCode}
+                      onChange={(e) => setCurrencyCode(e.target.value)}
+                    >
+                      {Object.entries(currencyOptions).map(([code, item]) => (
+                        <option key={code} value={code}>
+                          {code} - {item.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                </div>
+
+                {usePropertyMode ? (
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Property price">
+                        <Input
+                          type="number"
+                          value={propertyPrice}
+                          onChange={(e) => setPropertyPrice(e.target.value)}
+                        />
+                      </Field>
+
+                      <Field label="Deposit amount">
+                        <Input
+                          type="number"
+                          value={depositAmount}
+                          onChange={(e) => setDepositAmount(e.target.value)}
+                        />
+                      </Field>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl bg-white p-4 shadow-sm">
+                        <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                          Deposit
+                        </p>
+                        <p className="mt-1 text-xl font-black">
+                          {depositPercent.toFixed(1)}%
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-white p-4 shadow-sm">
+                        <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                          Loan required
+                        </p>
+                        <p className="mt-1 text-xl font-black">
+                          {money(loanAmount)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-700">
-                    <BadgeCheck size={24} />
+                ) : (
+                  <Field label="Loan amount">
+                    <Input
+                      type="number"
+                      value={manualLoanAmount}
+                      onChange={(e) => setManualLoanAmount(e.target.value)}
+                    />
+                  </Field>
+                )}
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Loan term in years">
+                    <Input
+                      type="number"
+                      value={loanTerm}
+                      onChange={(e) => setLoanTerm(e.target.value)}
+                    />
+                  </Field>
+
+                  <Field label="Repayment frequency">
+                    <Select
+                      value={frequency}
+                      onChange={(e) => setFrequency(e.target.value)}
+                    >
+                      {Object.entries(frequencies).map(([key, item]) => (
+                        <option key={key} value={key}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/70 p-4">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-black uppercase tracking-wide text-emerald-700">
+                        Split interest rates
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-slate-600">
+                        Keep this here so customers see results update instantly.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={addSplit}
+                      className="no-print inline-flex items-center gap-1 rounded-full bg-emerald-500 px-4 py-2 text-sm font-black text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
+                    >
+                      <Plus size={16} /> Add
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {splits.map((item, index) => (
+                      <div
+                        key={item.id}
+                        className="rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm"
+                      >
+                        <div className="mb-3 flex items-center justify-between">
+                          <p className="text-sm font-black text-slate-950">
+                            Split {index + 1}
+                          </p>
+                          <button
+                            onClick={() => removeSplit(item.id)}
+                            className="no-print rounded-full p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-500"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <Field label="Percentage %">
+                            <Input
+                              type="number"
+                              value={item.percentage}
+                              onChange={(e) =>
+                                updateSplit(item.id, "percentage", e.target.value)
+                              }
+                            />
+                          </Field>
+
+                          <Field label="Interest %">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={item.rate}
+                              onChange={(e) =>
+                                updateSplit(item.id, "rate", e.target.value)
+                              }
+                            />
+                          </Field>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 rounded-3xl bg-white p-4 shadow-sm">
+                    <p className="text-sm font-bold text-slate-500">
+                      Total split percentage
+                    </p>
+                    <p
+                      className={`text-3xl font-black ${
+                        splitTotalPercentage === 100
+                          ? "text-emerald-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {splitTotalPercentage}%
+                    </p>
+                    {splitTotalPercentage !== 100 && (
+                      <p className="mt-1 text-xs font-bold text-red-600">
+                        Total should be 100% for the most accurate split estimate.
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="rounded-3xl bg-slate-950 p-5 text-white">
-                    <p className="text-sm font-bold text-slate-300">
-                      LoanWise Score
-                    </p>
-                    <div className="mt-2 flex items-end justify-between gap-4">
-                      <p className="text-5xl font-black">{loanWiseScore}</p>
-                      <p className="mb-2 text-sm font-black text-emerald-300">
-                        / 100
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field
+                    label={`Extra payment each ${frequencies[
+                      frequency
+                    ].label.toLowerCase()}`}
+                  >
+                    <Input
+                      type="number"
+                      value={extraPayment}
+                      onChange={(e) => setExtraPayment(e.target.value)}
+                    />
+                  </Field>
+
+                  <Field label="One-off lump sum">
+                    <Input
+                      type="number"
+                      value={lumpSum}
+                      onChange={(e) => setLumpSum(e.target.value)}
+                    />
+                  </Field>
+                </div>
+              </div>
+            </aside>
+
+            <section className="space-y-5 lg:sticky lg:top-24">
+              <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-slate-200/60">
+                <div className="bg-slate-950 p-5 text-white sm:p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-black uppercase tracking-wide text-emerald-300">
+                        Instant result
+                      </p>
+                      <h2 className="mt-1 text-3xl font-black">
+                        {money(totalSplitRepayment)}
+                      </h2>
+                      <p className="mt-1 text-sm font-semibold text-slate-300">
+                        per {frequencies[frequency].label.toLowerCase()} at {weightedRate.toFixed(2)}% weighted rate
                       </p>
                     </div>
-                    <p className="mt-2 text-sm text-slate-300">{scoreLabel}</p>
-                    <div className="mt-4 h-3 rounded-full bg-white/10">
+
+                    <div className="rounded-2xl bg-white/10 p-3">
+                      <Calculator className="text-emerald-300" size={26} />
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-2xl bg-white/10 p-4">
+                      <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                        Loan required
+                      </p>
+                      <p className="mt-1 text-xl font-black">{money(loanAmount)}</p>
+                    </div>
+                    <div className="rounded-2xl bg-white/10 p-4">
+                      <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                        Interest saved
+                      </p>
+                      <p className="mt-1 text-xl font-black text-emerald-300">
+                        {money(results.interestSaved)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-white/10 p-4">
+                      <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                        Time saved
+                      </p>
+                      <p className="mt-1 text-xl font-black">
+                        {formatYearsMonths(results.timeSaved, periodsPerYear)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[0.85fr_1.15fr]">
+                  <div className="rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5">
+                    <p className="text-sm font-black uppercase tracking-wide text-emerald-700">
+                      LoanWise Score
+                    </p>
+                    <div className="mt-3 flex items-end gap-2">
+                      <p className="text-5xl font-black text-slate-950">
+                        {loanWiseScore}
+                      </p>
+                      <p className="mb-2 text-sm font-black text-slate-500">/100</p>
+                    </div>
+                    <p className="mt-2 text-sm font-black text-emerald-700">
+                      {scoreLabel}
+                    </p>
+                    <div className="mt-4 h-3 rounded-full bg-white">
                       <div
                         className="h-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
                         style={{ width: `${loanWiseScore}%` }}
@@ -1158,452 +1385,150 @@ Important: I understand this calculator is an estimate only and not financial ad
                     </div>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-3xl bg-emerald-50 p-5">
-                      <p className="text-sm font-bold text-emerald-700">
-                        Loan required
-                      </p>
-                      <p className="mt-1 text-2xl font-black text-slate-950">
-                        {money(loanAmount)}
-                      </p>
-                    </div>
-
-                    <div className="rounded-3xl bg-teal-50 p-5">
-                      <p className="text-sm font-bold text-teal-700">
-                        Split repayment
-                      </p>
-                      <p className="mt-1 text-2xl font-black text-slate-950">
-                        {money(totalSplitRepayment)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-3xl border border-slate-200 bg-white p-5">
-                    <div className="mb-3 flex items-center justify-between text-sm font-bold">
-                      <span className="text-slate-500">Deposit position</span>
-                      <span className="text-emerald-600">
-                        {depositPercent.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="h-3 rounded-full bg-slate-100">
-                      <div
-                        className="h-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
-                        style={{ width: `${Math.min(100, depositPercent * 4)}%` }}
-                      />
-                    </div>
-                    <p className="mt-3 text-sm text-slate-500">
-                      {depositPercent >= 20
-                        ? "A 20%+ deposit may place you in a stronger position."
-                        : "Below 20% deposit may involve low-equity conditions."}
+                  <div id="ai-coach" className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-sm font-black uppercase tracking-wide text-emerald-600">
+                      LoanWise AI Coach
                     </p>
+                    <h3 className="mt-2 text-xl font-black text-slate-950">
+                      {aiCoach.headline}
+                    </h3>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+                      {aiCoach.insight}
+                    </p>
+                    <div className="no-print mt-4 grid gap-2 sm:grid-cols-2">
+                      <button
+                        onClick={() => applyAiPreset("improve")}
+                        className="rounded-full bg-emerald-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
+                      >
+                        Improve my plan
+                      </button>
+                      <button
+                        onClick={() => applyAiPreset("balanced")}
+                        className="rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 transition hover:border-emerald-300 hover:text-emerald-700"
+                      >
+                        Balanced preset
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
 
-        <section id="features" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-4 inline-flex rounded-2xl bg-emerald-50 p-3 text-emerald-700">
-                <Home size={24} />
-              </div>
-              <h3 className="text-xl font-black">Property + deposit</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Enter property price and deposit to calculate loan required and
-                deposit percentage.
-              </p>
-            </div>
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/60 sm:p-6">
+                <SectionTitle
+                  eyebrow="Smart recommendations"
+                  title="Next best actions"
+                  note="These tips update automatically as the customer changes the calculator."
+                />
 
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-4 inline-flex rounded-2xl bg-teal-50 p-3 text-teal-700">
-                <Split size={24} />
-              </div>
-              <h3 className="text-xl font-black">Split mortgage</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Divide the loan across multiple percentages and interest rates.
-              </p>
-            </div>
-
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-4 inline-flex rounded-2xl bg-sky-50 p-3 text-sky-700">
-                <Target size={24} />
-              </div>
-              <h3 className="text-xl font-black">Scenario compare</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Compare normal, extra repayment, and aggressive payoff plans.
-              </p>
-            </div>
-
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-4 inline-flex rounded-2xl bg-slate-100 p-3 text-slate-800">
-                <Lightbulb size={24} />
-              </div>
-              <h3 className="text-xl font-black">AI Loan Coach</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Get AI-style insights, plan presets, and next-step guidance based on your inputs.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section
-          id="calculator"
-          className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[430px_1fr] lg:px-8"
-        >
-          <aside className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
-            <div className="mb-6 flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-black uppercase tracking-wide text-emerald-600">
-                  Calculator
-                </p>
-                <h2 className="mt-1 text-3xl font-black tracking-tight">
-                  Loan details
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Add property, deposit, split rates, and repayment goals.
-                </p>
-              </div>
-
-              <button
-                onClick={resetExample}
-                className="no-print inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-200"
-              >
-                <RefreshCcw size={16} /> Reset
-              </button>
-            </div>
-
-            <div className="space-y-5">
-              <Toggle
-                checked={usePropertyMode}
-                onChange={setUsePropertyMode}
-                label="Property price + deposit mode"
-                description="Calculate the loan required from purchase price and deposit."
-              />
-
-              <Toggle
-                checked={firstHomeBuyer}
-                onChange={setFirstHomeBuyer}
-                label="First-home buyer mode"
-                description="Show extra guidance for first-home buyers."
-              />
-
-              <Field label="Loan type">
-                <Select
-                  value={loanType}
-                  onChange={(e) => setLoanType(e.target.value)}
-                >
-                  <option>Mortgage</option>
-                  <option>Car loan</option>
-                  <option>Personal loan</option>
-                </Select>
-              </Field>
-
-              <Field label="Currency">
-                <Select
-                  value={currencyCode}
-                  onChange={(e) => setCurrencyCode(e.target.value)}
-                >
-                  {Object.entries(currencyOptions).map(([code, item]) => (
-                    <option key={code} value={code}>
-                      {code} — {item.label}
-                    </option>
+                <div className="grid gap-3">
+                  {recommendations.slice(0, 4).map((tip, index) => (
+                    <div key={tip} className="flex gap-3 rounded-3xl bg-emerald-50/70 p-4">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-black text-white">
+                        {index + 1}
+                      </div>
+                      <p className="text-sm font-semibold leading-6 text-slate-700">
+                        {tip}
+                      </p>
+                    </div>
                   ))}
-                </Select>
-              </Field>
-
-              {usePropertyMode ? (
-                <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
-                  <div className="grid gap-4">
-                    <Field label="Property price">
-                      <Input
-                        type="number"
-                        value={propertyPrice}
-                        onChange={(e) => setPropertyPrice(e.target.value)}
-                      />
-                    </Field>
-
-                    <Field label="Deposit amount">
-                      <Input
-                        type="number"
-                        value={depositAmount}
-                        onChange={(e) => setDepositAmount(e.target.value)}
-                      />
-                    </Field>
-                  </div>
-
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl bg-white p-4 shadow-sm">
-                      <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                        Deposit
-                      </p>
-                      <p className="mt-1 text-xl font-black">
-                        {depositPercent.toFixed(1)}%
-                      </p>
-                    </div>
-                    <div className="rounded-2xl bg-white p-4 shadow-sm">
-                      <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                        Loan required
-                      </p>
-                      <p className="mt-1 text-xl font-black">
-                        {money(loanAmount)}
-                      </p>
-                    </div>
-                  </div>
                 </div>
-              ) : (
-                <Field label="Loan amount">
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="compare" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
+              <SectionTitle
+                eyebrow="Affordability check"
+                title="Repayment pressure"
+                note="Compare repayment against income and monthly expenses."
+              />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Annual household income">
                   <Input
                     type="number"
-                    value={manualLoanAmount}
-                    onChange={(e) => setManualLoanAmount(e.target.value)}
+                    value={annualIncome}
+                    onChange={(e) => setAnnualIncome(e.target.value)}
                   />
                 </Field>
-              )}
 
-              <Field label="Loan term in years">
-                <Input
-                  type="number"
-                  value={loanTerm}
-                  onChange={(e) => setLoanTerm(e.target.value)}
-                />
-              </Field>
-
-              <Field label="Repayment frequency">
-                <Select
-                  value={frequency}
-                  onChange={(e) => setFrequency(e.target.value)}
-                >
-                  {Object.entries(frequencies).map(([key, item]) => (
-                    <option key={key} value={key}>
-                      {item.label}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-
-              <div className="rounded-[1.75rem] border border-emerald-100 bg-emerald-50/70 p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-black uppercase tracking-wide text-emerald-700">
-                      Split interest rates
-                    </p>
-                    <h3 className="text-xl font-black text-slate-950">
-                      Divide mortgage by rate
-                    </h3>
-                  </div>
-
-                  <button
-                    onClick={addSplit}
-                    className="no-print inline-flex items-center gap-1 rounded-full bg-emerald-500 px-4 py-2 text-sm font-black text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
-                  >
-                    <Plus size={16} /> Add
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {splits.map((item, index) => (
-                    <div
-                      key={item.id}
-                      className="rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm"
-                    >
-                      <div className="mb-3 flex items-center justify-between">
-                        <p className="text-sm font-black text-slate-950">
-                          Split {index + 1}
-                        </p>
-                        <button
-                          onClick={() => removeSplit(item.id)}
-                          className="no-print rounded-full p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-500"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <Field label="Percentage %">
-                          <Input
-                            type="number"
-                            value={item.percentage}
-                            onChange={(e) =>
-                              updateSplit(
-                                item.id,
-                                "percentage",
-                                e.target.value
-                              )
-                            }
-                          />
-                        </Field>
-
-                        <Field label="Interest %">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={item.rate}
-                            onChange={(e) =>
-                              updateSplit(item.id, "rate", e.target.value)
-                            }
-                          />
-                        </Field>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-4 rounded-3xl bg-white p-4 shadow-sm">
-                  <p className="text-sm font-bold text-slate-500">
-                    Total split percentage
-                  </p>
-                  <p
-                    className={`text-3xl font-black ${
-                      splitTotalPercentage === 100
-                        ? "text-emerald-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {splitTotalPercentage}%
-                  </p>
-                  {splitTotalPercentage !== 100 && (
-                    <p className="mt-1 text-xs font-bold text-red-600">
-                      Total should be 100% for the most accurate split estimate.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <Field
-                label={`Extra repayment each ${frequencies[
-                  frequency
-                ].label.toLowerCase()}`}
-              >
-                <Input
-                  type="number"
-                  value={extraPayment}
-                  onChange={(e) => setExtraPayment(e.target.value)}
-                />
-              </Field>
-
-              <Field
-                label={`Aggressive extra repayment each ${frequencies[
-                  frequency
-                ].label.toLowerCase()}`}
-              >
-                <Input
-                  type="number"
-                  value={aggressiveExtraPayment}
-                  onChange={(e) => setAggressiveExtraPayment(e.target.value)}
-                />
-              </Field>
-
-              <Field label="One-off lump sum payment">
-                <Input
-                  type="number"
-                  value={lumpSum}
-                  onChange={(e) => setLumpSum(e.target.value)}
-                />
-              </Field>
-            </div>
-          </aside>
-
-          <section className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-5">
-              <MetricCard
-                icon={<Home size={23} />}
-                label="Loan required"
-                value={money(loanAmount)}
-                note={`${depositPercent.toFixed(1)}% deposit`}
-                accent="blue"
-              />
-
-              <MetricCard
-                icon={<Calculator size={23} />}
-                label="Split repayment"
-                value={money(totalSplitRepayment)}
-                note={`per ${frequencies[frequency].label.toLowerCase()}`}
-                accent="emerald"
-              />
-
-              <MetricCard
-                icon={<Percent size={23} />}
-                label="Weighted rate"
-                value={`${weightedRate.toFixed(2)}%`}
-                note="based on split rates"
-                accent="teal"
-              />
-
-              <MetricCard
-                icon={<Clock size={23} />}
-                label="Time saved"
-                value={formatYearsMonths(results.timeSaved, periodsPerYear)}
-                note="with extra repayments"
-                accent="amber"
-              />
-
-              <MetricCard
-                icon={<DollarSign size={23} />}
-                label="Interest saved"
-                value={money(results.interestSaved)}
-                note="estimated saving"
-                accent="navy"
-              />
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
-                <SectionTitle
-                  eyebrow="LoanWise Score"
-                  title={`${loanWiseScore} / 100`}
-                  note={scoreLabel}
-                />
-                <div className="h-4 rounded-full bg-slate-100">
-                  <div
-                    className="h-4 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
-                    style={{ width: `${loanWiseScore}%` }}
+                <Field label="Estimated monthly expenses">
+                  <Input
+                    type="number"
+                    value={monthlyExpenses}
+                    onChange={(e) => setMonthlyExpenses(e.target.value)}
                   />
-                </div>
-                <p className="mt-4 text-sm leading-6 text-slate-600">
-                  Score is based on deposit position, loan term, weighted rate,
-                  extra repayment habit, and split percentage accuracy.
-                </p>
+                </Field>
               </div>
 
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
-                <SectionTitle
-                  eyebrow="Smart summary"
-                  title="Your LoanWise result"
+              <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                <ResultTile
+                  icon={<Gauge size={18} />}
+                  label="Repayment to income"
+                  value={`${affordability.repaymentToIncome.toFixed(1)}%`}
+                  note={affordability.label}
+                  tone="emerald"
                 />
-                <p className="text-xl font-semibold leading-9 text-slate-700">
-                  Your estimated loan required is{" "}
-                  <span className="font-black text-slate-950">
-                    {money(loanAmount)}
-                  </span>
-                  . Your split-loan repayment is approximately{" "}
-                  <span className="font-black text-slate-950">
-                    {money(totalSplitRepayment)}
-                  </span>{" "}
-                  per {frequencies[frequency].label.toLowerCase()} using a
-                  weighted average rate of{" "}
-                  <span className="font-black text-slate-950">
-                    {weightedRate.toFixed(2)}%
-                  </span>
-                  . Adding{" "}
-                  <span className="font-black text-slate-950">
-                    {money(Number(extraPayment))}
-                  </span>{" "}
-                  extra could save around{" "}
-                  <span className="font-black text-emerald-600">
-                    {money(results.interestSaved)}
-                  </span>
-                  .
-                </p>
+                <ResultTile
+                  icon={<WalletCards size={18} />}
+                  label="Monthly repayment"
+                  value={money(affordability.monthlyRepayment)}
+                  note="converted"
+                  tone="sky"
+                />
+                <ResultTile
+                  icon={<DollarSign size={18} />}
+                  label="Monthly surplus"
+                  value={money(affordability.monthlySurplus)}
+                  note="after expenses"
+                  tone={affordability.monthlySurplus >= 0 ? "teal" : "amber"}
+                />
               </div>
             </div>
 
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
               <SectionTitle
+                eyebrow="Rate stress test"
+                title="What if rates rise?"
+                note="Check whether a higher interest rate would still be manageable."
+              />
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                {stressTests.map((item) => (
+                  <div
+                    key={item.increase}
+                    className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
+                  >
+                    <p className="text-sm font-black text-slate-500">
+                      +{item.increase}% scenario
+                    </p>
+                    <p className="mt-2 text-3xl font-black text-slate-950">
+                      {item.stressedRate.toFixed(2)}%
+                    </p>
+                    <p className="mt-3 text-sm font-bold text-slate-500">
+                      Repayment
+                    </p>
+                    <p className="text-xl font-black text-slate-950">
+                      {money(item.repayment)}
+                    </p>
+                    <p className="mt-2 text-sm font-bold text-red-600">
+                      {money(item.difference)} more
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
+              <SectionTitle
                 eyebrow="Visual forecast"
                 title="Loan balance comparison"
-                note="Normal plan vs extra repayment plan"
+                note="Normal plan vs extra repayment plan."
               />
 
               <div className="h-80">
@@ -1620,7 +1545,7 @@ Important: I understand this calculator is an estimate only and not financial ad
                     />
                     <YAxis
                       tickFormatter={(value) =>
-                        `$${Math.round(value / 1000)}k`
+                        `${Math.round(value / 1000)}k`
                       }
                       stroke="#64748b"
                     />
@@ -1650,41 +1575,89 @@ Important: I understand this calculator is an estimate only and not financial ad
             </div>
 
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
-              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <SectionTitle
-                  eyebrow="Interest rate comparison"
-                  title="Compare rate options"
-                  note={`Compare different bank or fixed-rate options using your current ${frequencies[frequency].label.toLowerCase()} frequency.`}
-                />
+              <SectionTitle
+                eyebrow="Scenario comparison"
+                title="Repayment strategies"
+                note="Normal, extra, and aggressive payoff."
+              />
 
+              <div className="space-y-3">
+                {scenarioRows.map((row) => (
+                  <div
+                    key={row.name}
+                    className="rounded-3xl border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="font-black text-slate-950">{row.name}</p>
+                        <p className="text-sm font-semibold text-slate-500">
+                          Extra: {money(row.extra)}
+                        </p>
+                      </div>
+                      <p className="text-xl font-black text-slate-950">
+                        {money(row.repayment)}
+                      </p>
+                    </div>
+                    <p className="mt-3 text-sm font-bold text-emerald-600">
+                      Saves {money(row.interestSaved)} • {row.timeSaved}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
+              <SectionTitle
+                eyebrow="Frequency comparison"
+                title="Weekly vs fortnightly vs monthly"
+                note="Quick comparison across payment frequencies."
+              />
+
+              <div className="space-y-3">
+                {frequencyComparison.map((item) => (
+                  <div
+                    key={item.key}
+                    className="flex items-center justify-between rounded-3xl border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <div>
+                      <p className="font-black text-slate-950">{item.label}</p>
+                      <p className="text-sm font-semibold text-slate-500">
+                        Estimated repayment
+                      </p>
+                    </div>
+                    <p className="text-xl font-black text-slate-950">
+                      {money(item.repayment)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <SectionTitle
+                  eyebrow="Interest comparison"
+                  title="Compare manual rates"
+                  note="Later we can connect this to a bank-rate database."
+                />
                 <button
                   onClick={addRateComparison}
-                  className="no-print inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
+                  className="no-print inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-4 py-3 text-sm font-black text-white"
                 >
                   <Plus size={16} /> Add rate
                 </button>
               </div>
 
-              <div className="grid gap-3 lg:grid-cols-3">
-                {rateComparisonResults.map((item, index) => (
+              <div className="space-y-3">
+                {rateComparisonResults.map((item) => (
                   <div
                     key={item.id}
                     className="rounded-3xl border border-slate-200 bg-slate-50 p-4"
                   >
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <p className="text-sm font-black text-slate-500">
-                        Option {index + 1}
-                      </p>
-                      <button
-                        onClick={() => removeRateComparison(item.id)}
-                        className="no-print rounded-full p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-500"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-
-                    <div className="space-y-3">
-                      <Field label="Option name">
+                    <div className="grid gap-3 sm:grid-cols-[1fr_100px_auto] sm:items-end">
+                      <Field label="Option">
                         <Input
                           type="text"
                           value={item.label}
@@ -1693,8 +1666,7 @@ Important: I understand this calculator is an estimate only and not financial ad
                           }
                         />
                       </Field>
-
-                      <Field label="Interest rate %">
+                      <Field label="Rate %">
                         <Input
                           type="number"
                           step="0.01"
@@ -1704,609 +1676,275 @@ Important: I understand this calculator is an estimate only and not financial ad
                           }
                         />
                       </Field>
-                    </div>
-
-                    <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
-                      <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                        Repayment
-                      </p>
-                      <p className="mt-1 text-2xl font-black text-slate-950">
-                        {money(item.repayment)}
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-slate-500">
-                        per {frequencies[frequency].label.toLowerCase()}
-                      </p>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-2 gap-3">
-                      <div className="rounded-2xl bg-white p-3">
-                        <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                          Total interest
-                        </p>
-                        <p className="font-black text-slate-950">
-                          {money(item.totalInterest)}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl bg-white p-3">
-                        <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                          Difference
-                        </p>
-                        <p
-                          className={`font-black ${
-                            item.difference <= 0
-                              ? "text-emerald-600"
-                              : "text-amber-600"
-                          }`}
-                        >
-                          {item.difference <= 0
-                            ? "Best"
-                            : `+${money(item.difference)}`}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div id="compare" className="grid gap-6 lg:grid-cols-2">
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
-                <SectionTitle
-                  eyebrow="Frequency comparison"
-                  title="Weekly vs fortnightly vs monthly"
-                  note="See estimated repayments across common payment frequencies."
-                />
-
-                <div className="space-y-3">
-                  {frequencyComparison.map((item) => (
-                    <div
-                      key={item.key}
-                      className="flex items-center justify-between rounded-3xl border border-slate-200 bg-slate-50 p-4"
-                    >
-                      <div>
-                        <p className="font-black text-slate-950">
-                          {item.label}
-                        </p>
-                        <p className="text-sm font-semibold text-slate-500">
-                          Estimated repayment
-                        </p>
-                      </div>
-                      <p className="text-xl font-black text-slate-950">
-                        {money(item.repayment)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
-                <SectionTitle
-                  eyebrow="Scenario comparison"
-                  title="Compare repayment strategies"
-                  note="Normal, extra repayment, and aggressive payoff plan."
-                />
-
-                <div className="space-y-3">
-                  {scenarioRows.map((row) => (
-                    <div
-                      key={row.name}
-                      className="rounded-3xl border border-slate-200 bg-slate-50 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="font-black text-slate-950">
-                            {row.name}
-                          </p>
-                          <p className="text-sm font-semibold text-slate-500">
-                            Extra: {money(row.extra)} per{" "}
-                            {frequencies[frequency].label.toLowerCase()}
-                          </p>
-                        </div>
-                        <p className="text-xl font-black text-slate-950">
-                          {money(row.repayment)}
-                        </p>
-                      </div>
-
-                      <div className="mt-3 grid grid-cols-2 gap-3">
-                        <div className="rounded-2xl bg-white p-3">
-                          <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                            Interest saved
-                          </p>
-                          <p className="font-black text-emerald-600">
-                            {money(row.interestSaved)}
-                          </p>
-                        </div>
-                        <div className="rounded-2xl bg-white p-3">
-                          <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                            Time saved
-                          </p>
-                          <p className="font-black text-slate-950">
-                            {row.timeSaved}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
-              <SectionTitle
-                eyebrow="Split breakdown"
-                title="Mortgage portions"
-                note={`Based on total loan ${money(loanAmount)}`}
-              />
-
-              <div className="overflow-x-auto rounded-3xl border border-slate-200">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-100 text-slate-600">
-                    <tr>
-                      <th className="p-4">Split</th>
-                      <th className="p-4">Percentage</th>
-                      <th className="p-4">Rate</th>
-                      <th className="p-4">Amount</th>
-                      <th className="p-4">Repayment</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {splitResults.map((item) => (
-                      <tr key={item.id} className="border-t border-slate-100">
-                        <td className="p-4 font-black">{item.name}</td>
-                        <td className="p-4">{item.percentage}%</td>
-                        <td className="p-4">
-                          {Number(item.rate).toFixed(2)}%
-                        </td>
-                        <td className="p-4">{money(item.amount)}</td>
-                        <td className="p-4 font-black">
-                          {money(item.repayment)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-
-            <div
-              id="ai-coach"
-              className="rounded-[2rem] border border-emerald-200 bg-gradient-to-br from-white via-emerald-50/60 to-teal-50 p-6 shadow-xl shadow-slate-200/60"
-            >
-              <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <SectionTitle
-                  eyebrow="LoanWise AI Coach"
-                  title={aiCoach.headline}
-                  note="AI-style guidance powered by smart rules inside your calculator. No API key required."
-                />
-                <div className="rounded-3xl bg-slate-950 px-5 py-4 text-white">
-                  <p className="text-xs font-black uppercase tracking-wide text-emerald-300">
-                    Plan status
-                  </p>
-                  <p className="mt-1 text-2xl font-black">{aiCoach.riskLevel}</p>
-                </div>
-              </div>
-
-              <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-                <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
-                  <div className="mb-3 inline-flex rounded-2xl bg-emerald-50 p-3 text-emerald-700">
-                    <Sparkles size={22} />
-                  </div>
-                  <p className="text-sm font-black uppercase tracking-wide text-emerald-600">
-                    AI Insight
-                  </p>
-                  <p className="mt-2 text-base font-semibold leading-7 text-slate-700">
-                    {aiCoach.insight}
-                  </p>
-
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={() => applyAiPreset("conservative")}
-                      className="no-print rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-black text-slate-800 transition hover:border-emerald-300 hover:bg-emerald-50"
-                    >
-                      Conservative plan
-                      <span className="mt-1 block text-xs font-semibold text-slate-500">
-                        Lower extra payment, longer term
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyAiPreset("balanced")}
-                      className="no-print rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left text-sm font-black text-emerald-800 transition hover:bg-emerald-100"
-                    >
-                      Balanced plan
-                      <span className="mt-1 block text-xs font-semibold text-emerald-700">
-                        Moderate extra payment, 25-year test
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyAiPreset("aggressive")}
-                      className="no-print rounded-2xl border border-slate-200 bg-slate-950 px-4 py-3 text-left text-sm font-black text-white transition hover:bg-emerald-600"
-                    >
-                      Aggressive payoff
-                      <span className="mt-1 block text-xs font-semibold text-slate-300">
-                        Higher repayments, shorter term
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyAiPreset("improve")}
-                      className="no-print rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-left text-sm font-black text-teal-800 transition hover:bg-teal-100"
-                    >
-                      Improve my plan
-                      <span className="mt-1 block text-xs font-semibold text-teal-700">
-                        Auto-fix weak points where possible
-                      </span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
-                  <p className="text-sm font-black uppercase tracking-wide text-emerald-600">
-                    Suggested next moves
-                  </p>
-                  <div className="mt-4 space-y-3">
-                    {aiCoach.actions.map((action, index) => (
-                      <div key={action} className="flex gap-3 rounded-2xl bg-slate-50 p-3">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs font-black text-white">
-                          {index + 1}
-                        </div>
-                        <p className="text-sm font-semibold leading-6 text-slate-700">
-                          {action}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div
-              id="recommendations"
-              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60"
-            >
-              <SectionTitle
-                eyebrow="Smart recommendations"
-                title="Personalised tips"
-                note="These tips update automatically based on the numbers entered."
-              />
-
-              <div className="grid gap-3 md:grid-cols-2">
-                {recommendations.map((tip, index) => (
-                  <div
-                    key={tip}
-                    className="rounded-3xl border border-emerald-100 bg-emerald-50/60 p-4"
-                  >
-                    <div className="flex gap-3">
-                      <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-black text-white">
-                        {index + 1}
-                      </div>
-                      <p className="text-sm font-semibold leading-6 text-slate-700">
-                        {tip}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-
-            <div
-              id="affordability"
-              className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60"
-            >
-              <SectionTitle
-                eyebrow="Affordability check"
-                title="Check repayment pressure"
-                note="This quick estimate compares your repayment against income and monthly expenses."
-              />
-
-              <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-                <div className="grid gap-4">
-                  <Field label="Annual household income">
-                    <Input
-                      type="number"
-                      value={annualIncome}
-                      onChange={(e) => setAnnualIncome(e.target.value)}
-                    />
-                  </Field>
-
-                  <Field label="Estimated monthly expenses">
-                    <Input
-                      type="number"
-                      value={monthlyExpenses}
-                      onChange={(e) => setMonthlyExpenses(e.target.value)}
-                    />
-                  </Field>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                      Repayment to income
-                    </p>
-                    <p className={`mt-2 text-3xl font-black ${affordability.tone}`}>
-                      {affordability.repaymentToIncome.toFixed(1)}%
-                    </p>
-                    <p className="mt-1 text-sm font-bold text-slate-500">
-                      {affordability.label}
-                    </p>
-                  </div>
-
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                      Monthly repayment
-                    </p>
-                    <p className="mt-2 text-2xl font-black text-slate-950">
-                      {money(affordability.monthlyRepayment)}
-                    </p>
-                    <p className="mt-1 text-sm font-bold text-slate-500">
-                      converted from selected frequency
-                    </p>
-                  </div>
-
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                      Monthly surplus
-                    </p>
-                    <p
-                      className={`mt-2 text-2xl font-black ${
-                        affordability.monthlySurplus >= 0
-                          ? "text-emerald-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {money(affordability.monthlySurplus)}
-                    </p>
-                    <p className="mt-1 text-sm font-bold text-slate-500">
-                      after expenses and repayment
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
-              <SectionTitle
-                eyebrow="Rate stress test"
-                title="What if interest rates rise?"
-                note="This helps customers check whether a higher interest rate would still be manageable."
-              />
-
-              <div className="grid gap-4 md:grid-cols-3">
-                {stressTests.map((item) => (
-                  <div
-                    key={item.increase}
-                    className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
-                  >
-                    <p className="text-sm font-black text-slate-500">
-                      +{item.increase}% rate scenario
-                    </p>
-                    <p className="mt-2 text-3xl font-black text-slate-950">
-                      {item.stressedRate.toFixed(2)}%
-                    </p>
-                    <p className="mt-3 text-sm font-bold text-slate-500">
-                      Estimated repayment
-                    </p>
-                    <p className="text-xl font-black text-slate-950">
-                      {money(item.repayment)}
-                    </p>
-                    <p className="mt-2 text-sm font-bold text-red-600">
-                      {money(item.difference)} more per{" "}
-                      {frequencies[frequency].label.toLowerCase()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div id="adviser" className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
-              <SectionTitle
-                eyebrow="Mortgage adviser enquiry"
-                title="Request a review or callback"
-                note="This sends a pre-filled email to LoanWise NZ with the customer’s calculator summary. Add real adviser names only after they agree to be listed."
-              />
-
-              <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-                <div className="grid gap-4">
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    {[
-                      {
-                        name: "LoanWise NZ Review Team",
-                        region: "General enquiry",
-                        focus: "Calculator feedback and estimate review",
-                      },
-                      {
-                        name: "Auckland Partner Adviser",
-                        region: "Auckland",
-                        focus: "First-home buyer enquiries",
-                      },
-                      {
-                        name: "NZ Refix Partner Adviser",
-                        region: "Nationwide",
-                        focus: "Refix and split-mortgage planning",
-                      },
-                    ].map((adviser) => (
                       <button
-                        type="button"
-                        key={adviser.name}
-                        onClick={() => setSelectedAdviser(adviser.name)}
-                        className={`rounded-3xl border p-4 text-left transition ${
-                          selectedAdviser === adviser.name
-                            ? "border-emerald-300 bg-emerald-50"
-                            : "border-slate-200 bg-slate-50 hover:border-emerald-200"
-                        }`}
+                        onClick={() => removeRateComparison(item.id)}
+                        className="no-print rounded-2xl bg-white p-3 text-slate-400 hover:text-red-500"
                       >
-                        <p className="font-black text-slate-950">{adviser.name}</p>
-                        <p className="mt-1 text-sm font-bold text-emerald-700">
-                          {adviser.region}
-                        </p>
-                        <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
-                          {adviser.focus}
-                        </p>
+                        <Trash2 size={18} />
                       </button>
-                    ))}
+                    </div>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                      <p className="rounded-2xl bg-white p-3 text-sm font-bold text-slate-600">
+                        Repayment: <span className="block text-lg font-black text-slate-950">{money(item.repayment)}</span>
+                      </p>
+                      <p className="rounded-2xl bg-white p-3 text-sm font-bold text-slate-600">
+                        Interest: <span className="block text-lg font-black text-slate-950">{money(item.totalInterest)}</span>
+                      </p>
+                      <p className="rounded-2xl bg-white p-3 text-sm font-bold text-slate-600">
+                        Difference: <span className="block text-lg font-black text-emerald-600">{money(item.difference)}</span>
+                      </p>
+                    </div>
                   </div>
-
-                  <p className="rounded-3xl bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-800">
-                    Adviser cards are placeholders. Replace them with real adviser names,
-                    licence/FAP details, and emails only after permission.
-                  </p>
-                </div>
-
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Name">
-                      <Input
-                        type="text"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="Customer name"
-                      />
-                    </Field>
-
-                    <Field label="Email">
-                      <Input
-                        type="email"
-                        value={customerEmail}
-                        onChange={(e) => setCustomerEmail(e.target.value)}
-                        placeholder="customer@email.com"
-                      />
-                    </Field>
-
-                    <Field label="Phone optional">
-                      <Input
-                        type="tel"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="Phone number"
-                      />
-                    </Field>
-
-                    <Field label="Selected adviser/team">
-                      <Select
-                        value={selectedAdviser}
-                        onChange={(e) => setSelectedAdviser(e.target.value)}
-                      >
-                        <option>LoanWise NZ Review Team</option>
-                        <option>Auckland Partner Adviser</option>
-                        <option>NZ Refix Partner Adviser</option>
-                      </Select>
-                    </Field>
-                  </div>
-
-                  <label className="mt-4 block">
-                    <span className="mb-2 block text-sm font-bold text-slate-700">
-                      Message
-                    </span>
-                    <textarea
-                      value={customerMessage}
-                      onChange={(e) => setCustomerMessage(e.target.value)}
-                      placeholder="Tell us what you would like reviewed."
-                      className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-                    />
-                  </label>
-
-                  <div className="no-print mt-4 flex flex-col gap-3 sm:flex-row">
-                    <a
-                      href={enquiryMailto}
-                      onClick={() => {
-                        if (window.gtag) {
-                          window.gtag("event", "adviser_enquiry_click", {
-                            event_category: "lead",
-                            event_label: selectedAdviser,
-                          });
-                        }
-                      }}
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
-                    >
-                      <Mail size={16} /> Send enquiry
-                    </a>
-
-                    <button
-                      type="button"
-                      onClick={saveEstimate}
-                      className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-800 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700"
-                    >
-                      <CheckCircle2 size={16} /> {savedEstimate ? "Saved!" : "Save estimate"}
-                    </button>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
-
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
-              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <SectionTitle
-                  eyebrow="Report + schedule"
-                  title="Amortisation schedule"
-                  note="Download CSV or use the PDF report button."
-                />
-
-                <div className="no-print flex flex-col gap-3 sm:flex-row">
-                  <button
-                    onClick={copyShareSummary}
-                    className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-800 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700"
-                  >
-                    <Copy size={16} /> {copiedSummary ? "Copied!" : "Copy Summary"}
-                  </button>
-
-                  <button
-                    onClick={printPdfReport}
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
-                  >
-                    <FileText size={16} /> Download PDF Report
-                  </button>
-
-                  <button
-                    onClick={() => downloadCsv(results.extra.rows)}
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-black text-white shadow-lg shadow-slate-950/10 transition hover:bg-emerald-600"
-                  >
-                    <Download size={16} /> Download CSV
-                  </button>
-                </div>
-              </div>
-
-              <div className="max-h-96 overflow-auto rounded-3xl border border-slate-200">
-                <table className="w-full text-left text-sm">
-                  <thead className="sticky top-0 bg-slate-100 text-slate-600">
-                    <tr>
-                      <th className="p-4">Period</th>
-                      <th className="p-4">Payment</th>
-                      <th className="p-4">Principal</th>
-                      <th className="p-4">Interest</th>
-                      <th className="p-4">Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.extra.rows.slice(0, 240).map((row) => (
-                      <tr key={row.period} className="border-t border-slate-100">
-                        <td className="p-4">{row.period}</td>
-                        <td className="p-4">{money(row.payment)}</td>
-                        <td className="p-4">{money(row.principalPaid)}</td>
-                        <td className="p-4">{money(row.interest)}</td>
-                        <td className="p-4 font-black">
-                          {money(row.balance)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <p className="mt-3 text-sm text-slate-500">
-                Showing first 240 repayment periods. Download CSV for the full
-                schedule.
-              </p>
-            </div>
-          </section>
+          </div>
         </section>
 
+        <section id="adviser" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-slate-200/60">
+            <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
+              <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-6 text-white sm:p-8">
+                <p className="text-sm font-black uppercase tracking-wide text-emerald-300">
+                  Mortgage adviser enquiry
+                </p>
+                <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
+                  Send your estimate for review
+                </h2>
+                <p className="mt-3 max-w-xl text-sm font-semibold leading-7 text-slate-300">
+                  Choose a review option and send a pre-filled enquiry to LoanWise NZ.
+                  The email includes your calculator summary so the next step is easier.
+                </p>
 
-        <section id="about" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+                <div className="mt-6 grid gap-3">
+                  {[
+                    {
+                      name: "LoanWise NZ Review Team",
+                      region: "General enquiry",
+                      focus: "Calculator feedback and estimate review",
+                    },
+                    {
+                      name: "Auckland Partner Adviser",
+                      region: "Auckland",
+                      focus: "First-home buyer enquiries",
+                    },
+                    {
+                      name: "NZ Refix Partner Adviser",
+                      region: "Nationwide",
+                      focus: "Refix and split-mortgage planning",
+                    },
+                  ].map((adviser) => (
+                    <button
+                      type="button"
+                      key={adviser.name}
+                      onClick={() => setSelectedAdviser(adviser.name)}
+                      className={`group flex items-start gap-4 rounded-3xl border p-4 text-left transition ${
+                        selectedAdviser === adviser.name
+                          ? "border-emerald-300 bg-white text-slate-950 shadow-lg shadow-emerald-500/10"
+                          : "border-white/10 bg-white/10 text-white hover:border-emerald-300/60 hover:bg-white/15"
+                      }`}
+                    >
+                      <div
+                        className={`mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                          selectedAdviser === adviser.name
+                            ? "bg-emerald-500 text-white"
+                            : "bg-white/10 text-emerald-200"
+                        }`}
+                      >
+                        <ShieldCheck size={20} />
+                      </div>
+                      <div>
+                        <p className="font-black">{adviser.name}</p>
+                        <p
+                          className={`mt-1 text-sm font-black ${
+                            selectedAdviser === adviser.name
+                              ? "text-emerald-700"
+                              : "text-emerald-200"
+                          }`}
+                        >
+                          {adviser.region}
+                        </p>
+                        <p
+                          className={`mt-2 text-sm font-semibold leading-6 ${
+                            selectedAdviser === adviser.name
+                              ? "text-slate-600"
+                              : "text-slate-300"
+                          }`}
+                        >
+                          {adviser.focus}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                <p className="mt-5 rounded-3xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm font-semibold leading-6 text-amber-100">
+                  Adviser cards are placeholders. Replace them with real adviser names,
+                  licence/FAP details, and emails only after permission.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 p-6 sm:p-8">
+                <div className="mb-5 rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">
+                    Selected review option
+                  </p>
+                  <p className="mt-2 text-2xl font-black text-slate-950">
+                    {selectedAdviser}
+                  </p>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+                    This form opens a pre-filled email to loanfreedomcalculator@gmail.com.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Name">
+                    <Input
+                      type="text"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Customer name"
+                    />
+                  </Field>
+
+                  <Field label="Email">
+                    <Input
+                      type="email"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      placeholder="customer@email.com"
+                    />
+                  </Field>
+
+                  <Field label="Phone optional">
+                    <Input
+                      type="tel"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder="Phone number"
+                    />
+                  </Field>
+
+                  <Field label="Selected adviser/team">
+                    <Select
+                      value={selectedAdviser}
+                      onChange={(e) => setSelectedAdviser(e.target.value)}
+                    >
+                      <option>LoanWise NZ Review Team</option>
+                      <option>Auckland Partner Adviser</option>
+                      <option>NZ Refix Partner Adviser</option>
+                    </Select>
+                  </Field>
+                </div>
+
+                <label className="mt-4 block">
+                  <span className="mb-2 block text-sm font-bold text-slate-700">
+                    Message
+                  </span>
+                  <textarea
+                    value={customerMessage}
+                    onChange={(e) => setCustomerMessage(e.target.value)}
+                    placeholder="Tell us what you would like reviewed."
+                    className="min-h-32 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                  />
+                </label>
+
+                <div className="no-print mt-5 grid gap-3 sm:grid-cols-2">
+                  <a
+                    href={enquiryMailto}
+                    onClick={() => {
+                      if (window.gtag) {
+                        window.gtag("event", "adviser_enquiry_click", {
+                          event_category: "lead",
+                          event_label: selectedAdviser,
+                        });
+                      }
+                    }}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-4 text-sm font-black text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
+                  >
+                    <Mail size={16} /> Send enquiry
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={saveEstimate}
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-4 text-sm font-black text-slate-800 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700"
+                  >
+                    <CheckCircle2 size={16} /> {savedEstimate ? "Saved!" : "Save estimate"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="report" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <SectionTitle
+                eyebrow="Report + schedule"
+                title="Amortisation schedule"
+                note="Download CSV or use the PDF report button."
+              />
+
+              <div className="no-print flex flex-col gap-3 sm:flex-row">
+                <button
+                  onClick={copyShareSummary}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-800 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700"
+                >
+                  <Copy size={16} /> {copiedSummary ? "Copied!" : "Copy Summary"}
+                </button>
+
+                <button
+                  onClick={printPdfReport}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
+                >
+                  <FileText size={16} /> PDF Report
+                </button>
+
+                <button
+                  onClick={() => downloadCsv(results.extra.rows)}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-black text-white shadow-lg shadow-slate-950/10 transition hover:bg-emerald-600"
+                >
+                  <Download size={16} /> CSV
+                </button>
+              </div>
+            </div>
+
+            <div className="max-h-96 overflow-auto rounded-3xl border border-slate-200">
+              <table className="w-full text-left text-sm">
+                <thead className="sticky top-0 bg-slate-100 text-slate-600">
+                  <tr>
+                    <th className="p-4">Period</th>
+                    <th className="p-4">Payment</th>
+                    <th className="p-4">Principal</th>
+                    <th className="p-4">Interest</th>
+                    <th className="p-4">Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.extra.rows.slice(0, 240).map((row) => (
+                    <tr key={row.period} className="border-t border-slate-100">
+                      <td className="p-4">{row.period}</td>
+                      <td className="p-4">{money(row.payment)}</td>
+                      <td className="p-4">{money(row.principalPaid)}</td>
+                      <td className="p-4">{money(row.interest)}</td>
+                      <td className="p-4 font-black">
+                        {money(row.balance)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="mt-3 text-sm text-slate-500">
+              Showing first 240 repayment periods. Download CSV for the full schedule.
+            </p>
+          </div>
+        </section>
+
+        <section id="about" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
               <SectionTitle
@@ -2360,7 +1998,7 @@ Important: I understand this calculator is an estimate only and not financial ad
           </div>
         </section>
 
-        <section id="faq" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <section id="faq" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
             <SectionTitle
               eyebrow="Frequently asked questions"
@@ -2408,7 +2046,7 @@ Important: I understand this calculator is an estimate only and not financial ad
           </div>
         </section>
 
-        <section id="contact" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <section id="contact" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="rounded-[2rem] border border-slate-200 bg-slate-950 p-6 text-white shadow-xl">
             <div className="grid gap-6 md:grid-cols-[1fr_1.1fr] md:items-center">
               <div>
@@ -2421,6 +2059,12 @@ Important: I understand this calculator is an estimate only and not financial ad
                 <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
                   Share feedback from first-home buyers, borrowers, mortgage advisers, or anyone comparing loan options.
                 </p>
+                <a
+                  href="mailto:loanfreedomcalculator@gmail.com"
+                  className="mt-5 inline-flex rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-600"
+                >
+                  Contact: loanfreedomcalculator@gmail.com
+                </a>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-3xl bg-white/10 p-5">
@@ -2442,7 +2086,7 @@ Important: I understand this calculator is an estimate only and not financial ad
           </div>
         </section>
 
-        <footer className="mt-12 border-t border-slate-200 bg-white">
+        <footer className="mt-8 border-t border-slate-200 bg-white">
           <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
             <div className="grid gap-6 md:grid-cols-[1fr_1.5fr] md:items-center">
               <Logo />
