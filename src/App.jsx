@@ -1,3 +1,4 @@
+import emailjs from "emailjs-com";
 import React, { useMemo, useState } from "react";
 import {
   LineChart,
@@ -326,6 +327,7 @@ export default function App() {
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerMessage, setCustomerMessage] = useState("");
+  const [bestTime, setBestTime] = useState("Morning");
 
   const [splits, setSplits] = useState([
     { id: 1, percentage: 50, rate: 5.99 },
@@ -338,6 +340,28 @@ export default function App() {
     { id: 2, label: "Bank option B", rate: 6.49 },
     { id: 3, label: "Bank option C", rate: 6.99 },
   ]);
+
+  const sendEnquiry = (e) => {
+  e.preventDefault();
+  emailjs.send(
+    "service_5n5k0ps",       // Your EmailJS service ID
+    "template_zaa009d",      // Your EmailJS template ID
+    {
+      name: customerName,
+      email: customerEmail,
+      phone: customerPhone,
+      adviser: selectedAdviser,
+      loanType: loanType,
+      firstHomeBuyer: firstHomeBuyer,
+      preferredContact: preferredContact,
+      bestTime: bestTime,
+      message: customerMessage
+    },
+    "zeOv64LK7TivyJ14I"         // Your EmailJS public key
+  )
+  .then(() => alert("Enquiry sent!"))
+  .catch((err) => alert("Failed to send enquiry: " + err.text));
+};
 
   const money = (value) => formatMoney(value, currencyCode);
 
@@ -1700,8 +1724,7 @@ Important: I understand this calculator is an estimate only and not financial ad
             </div>
           </div>
         </section>
-
-        <section id="adviser" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+<section id="adviser" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-slate-200/60">
             <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
               <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-6 text-white sm:p-8">
@@ -1824,6 +1847,13 @@ Important: I understand this calculator is an estimate only and not financial ad
                       placeholder="Phone number"
                     />
                   </Field>
+                  <Field label="Best time to talk">
+  <Select value={bestTime} onChange={(e) => setBestTime(e.target.value)}>
+    <option>Morning</option>
+    <option>Afternoon</option>
+    <option>Evening</option>
+  </Select>
+</Field>
 
                   <Field label="Selected adviser/team">
                     <Select
@@ -1850,20 +1880,13 @@ Important: I understand this calculator is an estimate only and not financial ad
                 </label>
 
                 <div className="no-print mt-5 grid gap-3 sm:grid-cols-2">
-                  <a
-                    href={enquiryMailto}
-                    onClick={() => {
-                      if (window.gtag) {
-                        window.gtag("event", "adviser_enquiry_click", {
-                          event_category: "lead",
-                          event_label: selectedAdviser,
-                        });
-                      }
-                    }}
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-4 text-sm font-black text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
-                  >
-                    <Mail size={16} /> Send enquiry
-                  </a>
+                  <button
+                     type="button"
+                    onClick={sendEnquiry}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-4 text-sm font-black text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600">
+                     <Mail size={16} /> Send enquiry
+                      </button>
+
 
                   <button
                     type="button"
@@ -1877,6 +1900,8 @@ Important: I understand this calculator is an estimate only and not financial ad
             </div>
           </div>
         </section>
+
+        
 
         <section id="report" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
@@ -2107,4 +2132,5 @@ Important: I understand this calculator is an estimate only and not financial ad
     </div>
   );
 }
+
 
