@@ -4,5 +4,5 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/', // Change this from '/loan-freedom-calculator/' for Vercel deployment
+  base: '/loan-freedom-calculator/',
 })
