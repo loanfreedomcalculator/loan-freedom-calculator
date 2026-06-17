@@ -177,7 +177,7 @@ function downloadCsv(rows) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "loanwise-nz-schedule.csv";
+  link.download = "loanfreedom-nz-schedule.csv";
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -193,7 +193,7 @@ function Logo() {
       </div>
       <div>
         <p className="text-lg font-black tracking-tight text-slate-950">
-          LoanWise NZ
+          Loan freedom NZ
         </p>
         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-600">
           Smarter loan planning
@@ -322,7 +322,7 @@ export default function App() {
   const [savedEstimate, setSavedEstimate] = useState(false);
   const [annualIncome, setAnnualIncome] = useState(120000);
   const [monthlyExpenses, setMonthlyExpenses] = useState(3500);
-  const [selectedAdviser, setSelectedAdviser] = useState("LoanWise NZ Review Team");
+  const [selectedAdviser, setSelectedAdviser] = useState("LoanFreedom NZ Review Team");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -530,7 +530,7 @@ export default function App() {
     });
   }, [rateComparisons, loanAmount, loanTerm, periodsPerYear]);
 
-  const loanWiseScore = useMemo(() => {
+  const loanfreedomScore = useMemo(() => {
     let score = 50;
 
     if (depositPercent >= 20) score += 20;
@@ -563,11 +563,11 @@ export default function App() {
   ]);
 
   const scoreLabel = useMemo(() => {
-    if (loanWiseScore >= 85) return "Strong position";
-    if (loanWiseScore >= 70) return "Healthy plan";
-    if (loanWiseScore >= 50) return "Needs review";
+    if (loanfreedomScore >= 85) return "Strong position";
+    if (loanfreedomScore >= 70) return "Healthy plan";
+    if (loanfreedomScore >= 50) return "Needs review";
     return "Higher risk estimate";
-  }, [loanWiseScore]);
+  }, [loanfreedomScore]);
 
   const affordability = useMemo(() => {
     const income = Number(annualIncome || 0);
@@ -696,17 +696,17 @@ export default function App() {
     const actions = [];
     let riskLevel = "Balanced";
     let headline = "Your plan is moving in the right direction.";
-    let insight = "LoanWise AI Coach reviews your deposit, split rates, repayment strategy, and LoanWise Score to suggest practical next steps.";
+    let insight = "LoanFreedom AI Coach reviews your deposit, split rates, repayment strategy, and LoanFreedom Score to suggest practical next steps.";
 
-    if (loanWiseScore >= 85) {
+    if (loanfreedomScore >= 85) {
       riskLevel = "Strong";
       headline = "You have a strong estimated loan position.";
       insight = "Your deposit, repayment strategy, and split-rate setup look healthy. Use scenario comparison to test whether a shorter loan term creates worthwhile savings.";
-    } else if (loanWiseScore >= 70) {
+    } else if (loanfreedomScore >= 70) {
       riskLevel = "Healthy";
       headline = "Your plan looks healthy, with room to optimise.";
       insight = "Your numbers are generally balanced. The best next step is to compare a slightly higher extra repayment or a shorter term against your comfort level.";
-    } else if (loanWiseScore >= 50) {
+    } else if (loanfreedomScore >= 50) {
       riskLevel = "Review";
       headline = "Your plan may benefit from a few adjustments.";
       insight = "Your estimate suggests opportunities to improve deposit strength, reduce interest exposure, or increase extra repayments gradually.";
@@ -741,7 +741,7 @@ export default function App() {
       actions: actions.slice(0, 4),
     };
   }, [
-    loanWiseScore,
+    loanfreedomScore,
     depositPercent,
     usePropertyMode,
     splitTotalPercentage,
@@ -917,16 +917,16 @@ export default function App() {
   };
 
   const shareSummary = useMemo(() => {
-    return `LoanWise NZ estimate
+    return `LoanFreedom NZ estimate
 Property price: ${money(Number(propertyPrice || 0))}
 Deposit: ${money(Number(depositAmount || 0))} (${depositPercent.toFixed(1)}%)
 Loan required: ${money(loanAmount)}
 Estimated ${frequencies[frequency].label.toLowerCase()} repayment: ${money(totalSplitRepayment)}
 Weighted interest rate: ${weightedRate.toFixed(2)}%
-LoanWise Score: ${loanWiseScore}/100 (${scoreLabel})
+LoanFreedom Score: ${loanfreedomScore}/100 (${scoreLabel})
 Estimated interest saved with extra repayments: ${money(results.interestSaved)}
 
-Try LoanWise NZ:
+Try LoanFreedom NZ:
 https://loanfreedomcalculator.github.io/loan-freedom-calculator/`;
   }, [
     propertyPrice,
@@ -936,7 +936,7 @@ https://loanfreedomcalculator.github.io/loan-freedom-calculator/`;
     frequency,
     totalSplitRepayment,
     weightedRate,
-    loanWiseScore,
+    loanfreedomScore,
     scoreLabel,
     results.interestSaved,
     money,
@@ -961,7 +961,7 @@ https://loanfreedomcalculator.github.io/loan-freedom-calculator/`;
     if (window.gtag) {
       window.gtag("event", "copy_summary", {
         event_category: "engagement",
-        event_label: "LoanWise NZ summary copied",
+        event_label: "LoanFreedom NZ summary copied",
       });
     }
   };
@@ -976,27 +976,27 @@ https://loanfreedomcalculator.github.io/loan-freedom-calculator/`;
       loanAmount,
       weightedRate,
       totalSplitRepayment,
-      loanWiseScore,
+      loanfreedomScore,
       scoreLabel,
       recommendations,
     };
 
-    localStorage.setItem("loanwise-nz-last-estimate", JSON.stringify(estimate));
+    localStorage.setItem("loanfreedom-nz-last-estimate", JSON.stringify(estimate));
     setSavedEstimate(true);
     setTimeout(() => setSavedEstimate(false), 2200);
 
     if (window.gtag) {
       window.gtag("event", "save_estimate", {
         event_category: "engagement",
-        event_label: "LoanWise NZ estimate saved",
+        event_label: "LoanFreedom NZ estimate saved",
       });
     }
   };
 
   const enquiryMailto = useMemo(() => {
-    const subject = encodeURIComponent(`LoanWise NZ enquiry - ${selectedAdviser}`);
+    const subject = encodeURIComponent(`LoanFreedom NZ enquiry - ${selectedAdviser}`);
     const body = encodeURIComponent(
-      `Hello LoanWise NZ,
+      `Hello LoanFreedom NZ,
 
 I would like someone to review this estimate or contact me.
 
@@ -1390,11 +1390,11 @@ Important: I understand this calculator is an estimate only and not financial ad
                 <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[0.85fr_1.15fr]">
                   <div className="rounded-3xl border border-emerald-100 bg-emerald-50/60 p-5">
                     <p className="text-sm font-black uppercase tracking-wide text-emerald-700">
-                      LoanWise Score
+                      LoanFreedom Score
                     </p>
                     <div className="mt-3 flex items-end gap-2">
                       <p className="text-5xl font-black text-slate-950">
-                        {loanWiseScore}
+                        {loanfreedomScore}
                       </p>
                       <p className="mb-2 text-sm font-black text-slate-500">/100</p>
                     </div>
@@ -1404,14 +1404,14 @@ Important: I understand this calculator is an estimate only and not financial ad
                     <div className="mt-4 h-3 rounded-full bg-white">
                       <div
                         className="h-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
-                        style={{ width: `${loanWiseScore}%` }}
+                        style={{ width: `${loanfreedomScore}%` }}
                       />
                     </div>
                   </div>
 
                   <div id="ai-coach" className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                     <p className="text-sm font-black uppercase tracking-wide text-emerald-600">
-                      LoanWise AI Coach
+                      LoanFreedom AI Coach
                     </p>
                     <h3 className="mt-2 text-xl font-black text-slate-950">
                       {aiCoach.headline}
@@ -1735,14 +1735,14 @@ Important: I understand this calculator is an estimate only and not financial ad
                   Send your estimate for review
                 </h2>
                 <p className="mt-3 max-w-xl text-sm font-semibold leading-7 text-slate-300">
-                  Choose a review option and send a pre-filled enquiry to LoanWise NZ.
+                  Choose a review option and send a pre-filled enquiry to LoanFreedom NZ.
                   The email includes your calculator summary so the next step is easier.
                 </p>
 
                 <div className="mt-6 grid gap-3">
                   {[
                     {
-                      name: "LoanWise NZ Review Team",
+                      name: "LoanFreedom NZ Review Team",
                       region: "General enquiry",
                       focus: "Calculator feedback and estimate review",
                     },
@@ -1860,7 +1860,7 @@ Important: I understand this calculator is an estimate only and not financial ad
                       value={selectedAdviser}
                       onChange={(e) => setSelectedAdviser(e.target.value)}
                     >
-                      <option>LoanWise NZ Review Team</option>
+                      <option>LoanFreedom NZ Review Team</option>
                       <option>Auckland Partner Adviser</option>
                       <option>NZ Refix Partner Adviser</option>
                     </Select>
@@ -1973,9 +1973,9 @@ Important: I understand this calculator is an estimate only and not financial ad
           <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
               <SectionTitle
-                eyebrow="About LoanWise NZ"
+                eyebrow="About LoanFreedom NZ"
                 title="Built to help borrowers understand their numbers."
-                note="LoanWise NZ is designed for people who want a quick, practical view before talking to a lender, adviser, partner, or family member."
+                note="LoanFreedom NZ is designed for people who want a quick, practical view before talking to a lender, adviser, partner, or family member."
               />
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
@@ -2013,7 +2013,7 @@ Important: I understand this calculator is an estimate only and not financial ad
                   <Copy size={16} /> {copiedSummary ? "Copied!" : "Copy share summary"}
                 </button>
                 <a
-                  href="mailto:?subject=My LoanWise NZ estimate&body=I created this loan estimate using LoanWise NZ. Please review the summary I copied from the calculator."
+                  href="mailto:?subject=My LoanFreedom NZ estimate&body=I created this loan estimate using LoanFreedom NZ. Please review the summary I copied from the calculator."
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-800 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700"
                 >
                   <Mail size={16} /> Email reminder
@@ -2033,7 +2033,7 @@ Important: I understand this calculator is an estimate only and not financial ad
             <div className="grid gap-4 md:grid-cols-2">
               {[
                 {
-                  q: "Is LoanWise NZ financial advice?",
+                  q: "Is LoanFreedom NZ financial advice?",
                   a: "No. It is an estimate and planning tool only. Users should speak with a qualified mortgage adviser or lender before making financial decisions.",
                 },
                 {
@@ -2079,7 +2079,7 @@ Important: I understand this calculator is an estimate only and not financial ad
                   Feedback welcome
                 </p>
                 <h2 className="mt-2 text-3xl font-black tracking-tight">
-                  Help make LoanWise NZ more useful.
+                  Help make LoanFreedom NZ more useful.
                 </h2>
                 <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
                   Share feedback from first-home buyers, borrowers, mortgage advisers, or anyone comparing loan options.
@@ -2117,7 +2117,7 @@ Important: I understand this calculator is an estimate only and not financial ad
               <Logo />
               <div className="rounded-3xl bg-slate-50 p-5">
                 <p className="text-sm leading-6 text-slate-600">
-                  LoanWise NZ provides estimates only. Results are based on the
+                  LoanFreedom NZ provides estimates only. Results are based on the
                   information entered and may not include all fees, bank rules,
                   low-equity margins, cashback terms, break fees, insurance, or
                   individual lending conditions. This is not financial advice.
