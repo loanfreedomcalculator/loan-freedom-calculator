@@ -193,7 +193,7 @@ function Logo() {
       </div>
       <div>
         <p className="text-lg font-black tracking-tight text-slate-950">
-          Loan freedom NZ
+          LoanFreedom NZ
         </p>
         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-600">
           Smarter loan planning
@@ -530,7 +530,7 @@ export default function App() {
     });
   }, [rateComparisons, loanAmount, loanTerm, periodsPerYear]);
 
-  const loanfreedomScore = useMemo(() => {
+  const loanFreedomScore = useMemo(() => {
     let score = 50;
 
     if (depositPercent >= 20) score += 20;
@@ -563,11 +563,11 @@ export default function App() {
   ]);
 
   const scoreLabel = useMemo(() => {
-    if (loanfreedomScore >= 85) return "Strong position";
-    if (loanfreedomScore >= 70) return "Healthy plan";
-    if (loanfreedomScore >= 50) return "Needs review";
+    if (loanFreedomScore >= 85) return "Strong position";
+    if (loanFreedomScore >= 70) return "Healthy plan";
+    if (loanFreedomScore >= 50) return "Needs review";
     return "Higher risk estimate";
-  }, [loanfreedomScore]);
+  }, [loanFreedomScore]);
 
   const affordability = useMemo(() => {
     const income = Number(annualIncome || 0);
@@ -698,15 +698,15 @@ export default function App() {
     let headline = "Your plan is moving in the right direction.";
     let insight = "LoanFreedom AI Coach reviews your deposit, split rates, repayment strategy, and LoanFreedom Score to suggest practical next steps.";
 
-    if (loanfreedomScore >= 85) {
+    if (loanFreedomScore >= 85) {
       riskLevel = "Strong";
       headline = "You have a strong estimated loan position.";
       insight = "Your deposit, repayment strategy, and split-rate setup look healthy. Use scenario comparison to test whether a shorter loan term creates worthwhile savings.";
-    } else if (loanfreedomScore >= 70) {
+    } else if (loanFreedomScore >= 70) {
       riskLevel = "Healthy";
       headline = "Your plan looks healthy, with room to optimise.";
       insight = "Your numbers are generally balanced. The best next step is to compare a slightly higher extra repayment or a shorter term against your comfort level.";
-    } else if (loanfreedomScore >= 50) {
+    } else if (loanFreedomScore >= 50) {
       riskLevel = "Review";
       headline = "Your plan may benefit from a few adjustments.";
       insight = "Your estimate suggests opportunities to improve deposit strength, reduce interest exposure, or increase extra repayments gradually.";
@@ -741,7 +741,7 @@ export default function App() {
       actions: actions.slice(0, 4),
     };
   }, [
-    loanfreedomScore,
+    loanFreedomScore,
     depositPercent,
     usePropertyMode,
     splitTotalPercentage,
@@ -923,7 +923,7 @@ Deposit: ${money(Number(depositAmount || 0))} (${depositPercent.toFixed(1)}%)
 Loan required: ${money(loanAmount)}
 Estimated ${frequencies[frequency].label.toLowerCase()} repayment: ${money(totalSplitRepayment)}
 Weighted interest rate: ${weightedRate.toFixed(2)}%
-LoanFreedom Score: ${loanfreedomScore}/100 (${scoreLabel})
+LoanFreedom Score: ${loanFreedomScore}/100 (${scoreLabel})
 Estimated interest saved with extra repayments: ${money(results.interestSaved)}
 
 Try LoanFreedom NZ:
@@ -936,7 +936,7 @@ https://loanfreedomcalculator.github.io/loan-freedom-calculator/`;
     frequency,
     totalSplitRepayment,
     weightedRate,
-    loanfreedomScore,
+    loanFreedomScore,
     scoreLabel,
     results.interestSaved,
     money,
@@ -976,7 +976,7 @@ https://loanfreedomcalculator.github.io/loan-freedom-calculator/`;
       loanAmount,
       weightedRate,
       totalSplitRepayment,
-      loanfreedomScore,
+      loanFreedomScore,
       scoreLabel,
       recommendations,
     };
@@ -1394,7 +1394,7 @@ Important: I understand this calculator is an estimate only and not financial ad
                     </p>
                     <div className="mt-3 flex items-end gap-2">
                       <p className="text-5xl font-black text-slate-950">
-                        {loanfreedomScore}
+                        {loanFreedomScore}
                       </p>
                       <p className="mb-2 text-sm font-black text-slate-500">/100</p>
                     </div>
@@ -1404,7 +1404,7 @@ Important: I understand this calculator is an estimate only and not financial ad
                     <div className="mt-4 h-3 rounded-full bg-white">
                       <div
                         className="h-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
-                        style={{ width: `${loanfreedomScore}%` }}
+                        style={{ width: `${loanFreedomScore}%` }}
                       />
                     </div>
                   </div>
